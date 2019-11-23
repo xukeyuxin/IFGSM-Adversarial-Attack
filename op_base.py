@@ -43,7 +43,8 @@ class data(object):
             yield np.asarray(image), np.asarray(label)
     
     def load_fineune_data(self):
-        image_dirs = [ dir_name for dir_name in os.listdir(self.train_image_path) if os.path.isdir(dir_name) ]
+        image_dirs = [ dir_name for dir_name in os.listdir(self.train_image_path) if os.path.isdir(os.path.join(self.train_image_path,dir_name)) ]
+        print(image_dirs)
         for _dir_name in tqdm(image_dirs):
             dis_path = os.path.join(self.train_image_path,_dir_name)
             self.fineune_data += [ os.path.join(_dir_name,path) for path in os.listdir(dis_path) ]
@@ -54,7 +55,7 @@ class data(object):
             end_index = min( (i + 1) * self.batch_size, len(self.fineune_data) - 1)
             batch_data = self.fineune_data[start_index:end_index]
             batch_label =  [ self.name2class[path.split('/')[0]] for path in batch_data ]
-            yield self.rbg2float( [ cv2.imread(os.path.join(self.train_image_path,path)) for path in batch_data ] ), self.make_label(batch_label)
+            yield np.asarray( [ self.rbg2float(cv2.imread(os.path.join(self.train_image_path,path))) for path in batch_data ] ), self.make_label(batch_label)
 
     def shuffle(self):
         random.shuffle(self.fineune_data)

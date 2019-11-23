@@ -4,6 +4,7 @@ import numpy as np
 import json
 import pickle 
 from op_base import op_base
+import os
 
 class Classify(op_base):
     def __init__(self,sess,args):
@@ -50,7 +51,7 @@ class Classify(op_base):
 
 
     def graph(self,logit):
-        loss_softmax = tf.nn.softmax_cross_entropy_with_logits(logits = logit,labels = self.input_label)
+        loss_softmax = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logit,labels = self.input_label))
         l2_regularization = self.weight_decay * tf.add_n( [ tf.nn.l2_loss(v) for v in tf.trainable_variables() ] )
         loss = loss_softmax + l2_regularization
         self.summary.append(tf.summary.scalar('loss_softmax',loss_softmax))
@@ -92,6 +93,7 @@ class Classify(op_base):
 
             except StopIteration:
                 print('finish all')
+
 
         # print(final_target_feat.sort())
         # print(final_target_feat.argsort()[-10:])
@@ -174,11 +176,12 @@ class Classify(op_base):
                         _,summary_str = self.sess.run([apply_gradient_op,summary_op],feed_dict = {self.input_images:image_content,self.input_label:label_content})
                         step += 1
                         if(step % 10 == 0):
-                            summary_writer.add_summary(summary_str)
+                            summary_writer.add_summary(summary_str,step)
                         if(step % 100 == 0):
                             self.saver.save(self.sess,os.path.join(self.save_model,'checkpoint_%s_%s.ckpt' % (i,step)))
                     except StopIteration:
                         print( 'finish epoch %s' % i )
+                        self.data.shuffle()
                         continue  
 
 

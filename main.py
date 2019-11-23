@@ -28,8 +28,7 @@ parser.add_argument("-ih", "--image_height", type=int, default=299)
 parser.add_argument("-cd", "--choose_dims", type=int, default=10)
 parser.add_argument("-mt", "--max_var", type=int, default=32)
 parser.add_argument("-e", "--epoch", type=int, default=100)
-parser.add_argument("-gn", "--gpu_nums", type=int, default=2)
-parser.add_argument("-b", "--batch_size", type=int, default=16)
+parser.add_argument("-b", "--batch_size", type=int, default=64)
 parser.add_argument("-cs", "--change_size", type=int, default=4)
 parser.add_argument("-tu", "--train_utils", type=str, default='gpu')
 parser.add_argument("-l", "--lr", type=float, default=1e-1)
@@ -37,7 +36,7 @@ parser.add_argument("-ldt", "--lr_decay_step", type=int, default=0)
 parser.add_argument("-ldf", "--lr_decay_factor", type=float, default=0.1)
 parser.add_argument("-om", "--opt_momentum", type=float, default=0.9)
 parser.add_argument("-wd", "--weight_decay", type=float, default=1e-4)
-parser.add_argument("-ng", "--num_gpu", type=int, default=3)
+parser.add_argument("-ng", "--num_gpu", type=int, default=1)
 
 
 
