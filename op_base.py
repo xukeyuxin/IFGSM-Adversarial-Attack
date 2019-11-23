@@ -3,34 +3,38 @@ import os
 import cv2
 import tensorflow as tf
 import numpy as np
+import random
+from tqdm import tqdm
 
 class data(object):
     def __init__(self,args):
         self.__dict__ = args.__dict__
-        # self.image_list = []
-        # self.class2image = {}
         self.classNameList = []
+        self.fineune_data = []
+        self.name2class = {}
 
-        ### [n01440764 , n01443537 ]
         with open(self.classFile,'r' ) as f_r:
+            index = 1
             for line in f_r:
                 className = line.strip().split(',')[0]
                 self.classNameList.append(className)
-        # with open(self.image2class,'r') as f:
-        #     for line in f:
-        #         image_name,image_class = line.strip().split()
-        #         image_class = int(image_class)
-        #         image_name = os.path.join(self.train_image_path,image_name)
-        #         self.image_list.append((image_name,image_class))
-        #         self.class2image.setdefault(image_class,[])
-        #         self.class2image[image_class].append(image_name)
-
-        # self.image_list = np.asarray(self.image_list)
-        # self.class_num = 1000
-        # self.data_size = len(self.image_list)
+                self.name2class[className] = index
+                index += 1
+        
+        self.class_nums = len(self.name2class)
 
     def rbg2float(self,input,need_resize = True):
         return  (cv2.resize(input,(299,299)) - 127.5) / 127.5
+
+    def make_label(self,image_label):
+        batch_data = []
+        for item in image_label:
+            empty = np.zeros([self.class_nums])
+            int_item = int(item) - 1
+            empty[int_item] = 1
+            batch_data.append(empty)
+        return np.asarray(batch_data)
+
     def load_batch(self,batch_size = 16,shuffle = False):
         while True:
             random_index = np.random.choice(range(self.data_size),batch_size)
@@ -38,13 +42,23 @@ class data(object):
 
             yield np.asarray(image), np.asarray(label)
     
-    def random_target_images(self):
-        _random_label = np.random.choice(range(1,1001),self.batch_size)
-        _random_image_list = []
-        for _label in _random_label:
-            _random_image_list.append( np.random.choice(self.class2image[_label],self.one_target_image_num ) )
-        return _random_label,_random_image_list
-    
+    def load_fineune_data(self):
+        image_dirs = [ dir_name for dir_name in os.listdir(self.train_image_path) if os.path.isdir(dir_name) ]
+        for _dir_name in tqdm(image_dirs):
+            dis_path = os.path.join(self.train_image_path,_dir_name)
+            self.fineune_data += [ os.path.join(_dir_name,path) for path in os.listdir(dis_path) ]
+
+    def get_fineune_generator(self):
+        for i in tqdm(range(len(self.fineune_data) // self.batch_size)):
+            start_index = i * self.batch_size
+            end_index = min( (i + 1) * self.batch_size, len(self.fineune_data) - 1)
+            batch_data = self.fineune_data[start_index:end_index]
+            batch_label =  [ self.name2class[path.split('/')[0]] for path in batch_data ]
+            yield self.rbg2float( [ cv2.imread(os.path.join(self.train_image_path,path)) for path in batch_data ] ), self.make_label(batch_label)
+
+    def shuffle(self):
+        random.shuffle(self.fineune_data)
+
     def load_ImageNet_target_image(self,target):
         dirName = os.path.join(self.train_image_path,self.classNameList[int(target) - 1])
         image_list = os.listdir(dirName)
