@@ -73,7 +73,7 @@ class data(object):
             reader = csv.reader(f)
             for im_p,label,target in reader:
                 image_content = self.rbg2float(cv2.imread(os.path.join(self.attack_content,im_p)))
-                yield image_content,label,target
+                yield im_p,image_content,label,target
 
 
 class op_base(object):

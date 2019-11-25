@@ -5,13 +5,16 @@ import json
 import pickle 
 from op_base import op_base
 import os
-
+import cv2
+from tqdm import tqdm
 class Classify(op_base):
     def __init__(self,sess,args):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        self.model = ResNet(is_training = False)
+        self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
+        self.model = ResNet(self.input_images, is_training = False)
+        
         self.init_model()
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
@@ -35,6 +38,7 @@ class Classify(op_base):
             average_grads.append(grad_and_var)
         return average_grads
     def init_model(self):
+        self.model()
         self.global_step = tf.get_variable(name='global_step', shape=[], initializer=tf.constant_initializer(0),dtype= tf.int64,
                             trainable=False)
         lr = tf.train.exponential_decay(
@@ -43,61 +47,183 @@ class Classify(op_base):
             self.lr_decay_step,
             self.lr_decay_factor,
             staircase=True)
-        self.optimizer = tf.train.MomentumOptimizer(learning_rate=lr, momentum=self.opt_momentum)
-        self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
-        self.input_label = tf.placeholder(tf.float32,shape = [None,self.class_nums])
-
-        # self.feat = self.model(self.input_images)
-
+        # self.optimizer = tf.train.AdamOptimizer(learning_rate=lr, momentum=self.opt_momentum)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=lr)
+        self.saver = tf.train.Saver(tf.global_variables(),max_to_keep = 5)
 
     def graph(self,logit):
-        loss_softmax = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logit,labels = self.input_label))
-        l2_regularization = self.weight_decay * tf.add_n( [ tf.nn.l2_loss(v) for v in tf.trainable_variables() ] )
-        loss = loss_softmax + l2_regularization
+        loss_softmax = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits = logit,labels = self.input_label))
+        tf.identity(loss_softmax,name = 'loss_softmax')
         self.summary.append(tf.summary.scalar('loss_softmax',loss_softmax))
+        l2_regularization = self.weight_decay * tf.add_n( [ tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bn' not in v.name ] )
+        l2_regularization_bn = 0.1 * self.weight_decay * tf.add_n(  [ tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bn' in v.name ]  )
+        loss = loss_softmax + l2_regularization + l2_regularization_bn
         self.summary.append(tf.summary.scalar('l2_regularization',l2_regularization))
-        grads = self.optimizer.compute_gradients(loss,self.get_vars('logits'))
+        self.summary.append(tf.summary.scalar('l2_regularization_bn',l2_regularization_bn))
+        grads = self.optimizer.compute_gradients(loss,tf.trainable_variables())
         return grads
 
-    def eval_label(self):
+    def eval_finetune(self):
+
+        logit = self.model.logit
+        prob_topk, pred_topk = tf.nn.top_k(logit, k=5)
+
+        self.sess.run(tf.global_variables_initializer())
+        self.saver.restore(self.sess, self.pre_model)
+        
+        short_queue_content = []
+        short_queue_label = []
+        
+        root_dir = 'data/ISLVRC2012/n01440764'
+        image_test = os.listdir(root_dir)
+        for item in np.random.choice(image_test,1):
+            # _image_content,_label,_target = next(self.attack_generator)
+            short_queue_content.append(self.data.rbg2float(cv2.imread(os.path.join(root_dir,item))))
+            
+        _image_content = np.asarray(short_queue_content)
+        pred, _prob_topk, _pred_topk = self.sess.run([logit,prob_topk, pred_topk],feed_dict = {self.input_images:_image_content})
+
+        print(np.squeeze(_prob_topk), np.squeeze(_pred_topk))
+
+        # .argsort()[-self.choose_dims:]
+        # print(np.squeeze(pred).argsort(a))
+    def normal_2(input):
+        return  input / ( np.sqrt( np.sum(np.square(input) ) ) )
+    # def eval_label(self):
+    #     task_num = 1216
+    #     total_index = 1
+    #     f_f = open('attack_sim_feat.pickle','ab+')
+    #     f_l = open('attack_sim_feat.pickle','ab+')
+    #     while True:
+    #         try:
+    #             _image_name,_image_content,_label,_target = next(self.attack_generator)
+    #             simliar_value = 0.
+
+    #             _image_content = np.expand_dims(_image_content,axis = 0)
+    #             feat = tf.squeeze(self.model.feat)
+    #             logit = tf.nn.softmax(self.model.logit)
+    #             _label_feat,_label_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
+
+    #             _label_feat_normal = self.normal_2(_label_feat)
+
+    #             _target_generator = self.target_generator(_target)
+
+    #             best_feat_value = 0.
+    #             best_logit_arg = np.argmax()
+    #             best_pred = np.zeros((1000))
+    #             while True:  
+    #                 target_content, target_path = next(_target_generator)
+    #                 target_content = np.expand_dims(target_content,axis = 0)
+    #                 _target_feat,_target_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
+
+    #                 cos_dis = _label_feat_normal * self.normal_2(_target_feat)
+    #                 if(cos_dis > best_feat_value):
+    #                     choose_feat_target = target_path
+    #                     best_feat_value = cos_dis
+
+
+
+    #             _item = (_label,_label_feat,_label_logit)
+    #             pickle.dump(_item,f)
+    #             print('analy finish %s / %s' % (total_index,task_num))
+    #             total_index += 1
+
+    #         except StopIteration:
+    #             print('finish all')
+
+
+    
+    def eval_new(self):
         task_num = 1216
-        total_index = 1
-        f = open('attack_label.pickle','ab+')
+        index = 1
+        feat = tf.squeeze(self.model.feat)
+        logit = tf.nn.softmax(self.model.logit)
+
+        ## restore and init
+        self.sess.run(tf.global_variables_initializer())
+        self.saver.restore(self.sess, self.pre_model)
         while True:
             try:
-                _image_content,_label,_target = next(self.attack_generator)
-                simliar_value = 0.
+                root_pickle_dir = os.path.join('data/features',str(index))
+                if(not os.path.exists(root_pickle_dir)):
+                    os.mkdir(root_pickle_dir)
+                
+                f_a = open(os.path.join(root_pickle_dir,'single_label.pickle'),'ab+')
+                f_l = open(os.path.join(root_pickle_dir,'label_feature_logit.pickle'),'ab+')
+                f_t = open(os.path.join(root_pickle_dir,'target_feature_logit.pickle'),'ab+')
 
+                _image_name,_image_content,_label,_target = next(self.attack_generator)
                 _image_content = np.expand_dims(_image_content,axis = 0)
-                _item_label_feat = self.sess.run(self.feat,feed_dict = {self.input_images:_image_content})
-                label_dims = np.squeeze(_item_label_feat).argsort()[-self.choose_dims:]
+                attack_label_feat,attack_label_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
+                attack_label_logit = np.squeeze(attack_label_logit)
+                attack_tuple = (_image_name,attack_label_feat,attack_label_logit)
+                pickle.dump(attack_tuple,f_a)
 
-                _target_generator = self.target_generator(_label)
-                final_target_feat = np.zeros((2048))
-
-                index = 0
+                ### label 
+                _label_generator = self.target_generator(_label)
                 while True:  
-                    target_content, target_path = next(_target_generator)
-                    target_content = np.expand_dims(target_content,axis = 0)
-                    _item_target_feat = self.sess.run(self.feat,feed_dict = {self.input_images:target_content})
-                    final_target_feat += np.squeeze(_item_target_feat)
-                    index += 1
-                    if(index == 100):
-                        target_dims = final_target_feat.argsort()[-self.choose_dims:]
+                    try:
+                        label_content, label_path = next(_label_generator)
+                        label_content = np.expand_dims(label_content,axis = 0)
+                        label_feat,label_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
+                        label_logit = np.squeeze(label_logit)
+                        
+                        item_tuple = (label_path,label_feat,label_logit)
+                        pickle.dump(item_tuple,f_l)
+                    except StopIteration:
+                        print('analy label finish %s / %s' % (index,task_num))
                         break
+                    
 
-                _item = (_label,label_dims,target_dims)
-                pickle.dump(_item,f)
-                print('analy finish %s / %s' % (total_index,task_num))
-                total_index += 1
+                ### target 
+                _target_generator = self.target_generator(_target)
+                while True:  
+                    try:
+                        target_content, target_path = next(_target_generator)
+                        target_content = np.expand_dims(target_content,axis = 0)
+                        target_feat,target_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:target_content})
+                        target_logit = np.squeeze(target_logit)
+                        item_tuple = (target_path,target_feat,target_logit)
+                        pickle.dump(item_tuple,f_t)
+                    except StopIteration:
+                        print('analy target finish %s / %s' % (index,task_num))
+                        break
+                
+                index += 1
 
             except StopIteration:
                 print('finish all')
 
 
-        # print(final_target_feat.sort())
-        # print(final_target_feat.argsort()[-10:])
-        
+    def eval_label(self):
+        feat = tf.squeeze(self.model.feat)
+        logit = tf.nn.softmax(self.model.logit)
+
+        ## restore and init
+        self.sess.run(tf.global_variables_initializer())
+        self.saver.restore(self.sess, self.pre_model)
+        for index in tqdm(range(1,1001)):
+            root_pickle_dir = os.path.join('data/features_class')
+            if(not os.path.exists(root_pickle_dir)):
+                os.mkdir(root_pickle_dir)
+            
+            f_a = open(os.path.join(root_pickle_dir,'%s.pickle' % index),'ab+')
+
+            ### target 
+            _target_generator = self.target_generator(index)
+            while True:  
+                try:
+                    target_content, target_path = next(_target_generator)
+                    target_content = np.expand_dims(target_content,axis = 0)
+                    target_feat,target_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:target_content})
+                    target_logit = np.squeeze(target_logit)
+                    item_tuple = (target_path,target_feat,target_logit)
+                    pickle.dump(item_tuple,f_a)
+                except StopIteration:
+                    print('analy target finish %s / %s' % (index,1000))
+                    break
+            
+
 
 
     def eval(self):
@@ -140,49 +266,48 @@ class Classify(op_base):
         
 
     def train(self):
-        with tf.device('cpu:0'):
-            self.data.load_fineune_data()
-            data_generator = self.data.get_fineune_generator()
-            grads_mix = []
+        self.data.load_fineune_data()
+        data_generator = self.data.get_fineune_generator()
+        self.data.shuffle()
+
+        # with tf.variable_scope(tf.get_variable_scope()):
+        #     for i in range(self.num_gpu):
+        #         with tf.device('gpu:%s' % i):
+        #             with tf.name_scope('gpu_%s' % i) as scope:
+
+        logit = self.model(self.input_images,get_feature = False)
+        grads = self.graph(logit)
+
+        # average_grads = self.average_gradients(grads_mix)
+        apply_gradient_op = self.optimizer.apply_gradients(grads, global_step=self.global_step)
+        batchnorm_updates_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        train_op = tf.group(apply_gradient_op, batchnorm_updates_op)
 
 
-            with tf.variable_scope(tf.get_variable_scope()):
-                for i in range(self.num_gpu):
-                    with tf.device('gpu:%s' % i):
-                        with tf.name_scope('gpu_%s' % i) as scope:
-                            logit = self.model(self.input_images,get_feature = False)
-                            grads = self.graph(logit)
+        ## restore and init
+        self.sess.run(tf.global_variables_initializer())
+        self.saver.restore(self.sess, self.pre_model)
 
-                            tf.get_variable_scope().reuse_variables()
-                            grads_mix.append(grads)
+        summary_writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
+        summary_op = tf.summary.merge(self.summary)
 
-            average_grads = self.average_gradients(grads_mix)
-            apply_gradient_op = self.optimizer.apply_gradients(average_grads, global_step=self.global_step)
-
-            ## restore and init
-            self.saver = tf.train.Saver(tf.global_variables(),max_to_keep = 5)
-            self.sess.run(tf.global_variables_initializer())
-            self.saver.restore(self.sess, self.pre_model)
-
-            summary_writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
-            summary_op = tf.summary.merge(self.summary)
-
-            step = 0
-            for i in range(self.epoch):
-                print('start epoch %s' % i)
-                while True:
-                    try:
-                        image_content, label_content = next(data_generator)
-                        _,summary_str = self.sess.run([apply_gradient_op,summary_op],feed_dict = {self.input_images:image_content,self.input_label:label_content})
-                        step += 1
-                        if(step % 10 == 0):
-                            summary_writer.add_summary(summary_str,step)
-                        if(step % 100 == 0):
-                            self.saver.save(self.sess,os.path.join(self.save_model,'checkpoint_%s_%s.ckpt' % (i,step)))
-                    except StopIteration:
-                        print( 'finish epoch %s' % i )
-                        self.data.shuffle()
-                        continue  
+        step = 0
+        for i in range(self.epoch):
+            print('start epoch %s' % i)
+            while True:
+                try:
+                    image_content, label_content = next(data_generator)
+                    _,summary_str = self.sess.run([train_op,summary_op],feed_dict = {self.input_images:image_content,self.input_label:label_content})
+                    step += 1
+                    if(step % 10 == 0):
+                        summary_writer.add_summary(summary_str,step)
+                    if(step % 500 == 0):
+                        self.saver.save(self.sess,os.path.join(self.save_model,'checkpoint_%s_%s.ckpt' % (i,step)))
+                except StopIteration:
+                    print( 'finish epoch %s' % i )
+                    data_generator = self.data.get_fineune_generator()
+                    self.data.shuffle()
+                    break  
 
 
 
