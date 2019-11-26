@@ -18,7 +18,10 @@ class Classify(op_base):
         self.sess = sess
         self.summary = []
         self.input_images = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,3])
-        self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,3])
+        self.target_feature = tf.placeholder(tf.float32,shape = [2048])
+        self.label_feature = tf.placeholder(tf.float32,shape = [2048])
+        self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
+        self.index = tf.placeholder(tf.int32,shape = [])
         self.gaussian_blur = GaussianBlur()
 
         self.init_noise()
@@ -61,7 +64,7 @@ class Classify(op_base):
             staircase=True)
         # self.optimizer = tf.train.AdamOptimizer(learning_rate=lr, momentum=self.opt_momentum)
         self.optimizer = tf.train.AdamOptimizer(learning_rate=lr)
-        self.saver = tf.train.Saver(tf.global_variables(),max_to_keep = 5)
+        
 
     def graph(self,logit):
         loss_softmax = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits = logit,labels = self.input_label))
@@ -111,12 +114,13 @@ class Classify(op_base):
         fan_out = shape[-1]
         variation = (2/( fan_in +fan_out))*factor
         dev = math.sqrt(variation)
-        result = tf.truncated_normal(shape,mean = 0, stddev = dev)
+        # result = tf.truncated_normal(shape,mean = 0, stddev = dev)
+        result = np.random.normal(0,dev,shape)
         return result
 
-    def init_noise(self):
-        self.noise = self.xavier_initializer([1,299,299,3])
-        # tf.get_variable('noise', [self.image_height, self.image_weight,3], tf.float32, xavier_initializer())
+    # def init_noise(self):
+    #     self.noise = self.xavier_initializer([1,299,299,3])
+    #     # tf.get_variable('noise', [self.image_height, self.image_weight,3], tf.float32, xavier_initializer())
 
     def eval_label(self):
         feat = tf.squeeze(self.model.feat)
@@ -204,7 +208,7 @@ class Classify(op_base):
         return tf.reduce_sum(temp)
     
     def pre_noise(self,mask):
-        return mask * self.gaussian_blur(self.noise) 
+        return mask * self.gaussian_blur(self.tmp_noise) 
     
     def write_noise(self,mask,noise):
         return mask * self.gaussian_blur(noise) 
@@ -215,82 +219,142 @@ class Classify(op_base):
     def resize(self,input):
         return np.reshape(input,(299,299,3))
 
-    def feat_graph(self,combine_images,pre_noise,label_feature,target_feature,old_grad,momentum = 0.25, lr = 1.,index = 0):
+    # def feat_graph(self,mask,_image_content,label_feature,target_feature,old_grad,momentum = 0.25, lr = 1.,index = 0):
+        
+    #     pre_noise = self.pre_noise(mask)
+    #     combine_images = _image_content + pre_noise
+
+    #     ### 调参
+    #     alpha1 = 1
+    #     alpha2 = 1  
+        
+    #     with_noise_feat = self.tensor_normal_2(self.model(combine_images))
+    #     loss_feat_1 = tf.reduce_sum(label_feature * with_noise_feat) 
+    #     loss_feat_2 = tf.reduce_sum(target_feature * with_noise_feat)
+
+    #     alpha1 = tf.cast(tf.cond(loss_feat_1 < 0.3,lambda: 1.,lambda: 0.), tf.float32)
+    #     alpha2 = tf.cast(tf.cond(loss_feat_1 > 0.7,lambda: 1.,lambda: 0.), tf.float32)
+
+    #     loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
+    #     feat_grad = tf.gradients(ys = loss_feat,xs = self.noise)[0] ## (299,299,3)
+
+    #     loss1_v = feat_grad * (1 - momentum) + old_grad * momentum
+    #     loss_l2 = tf.sqrt(tf.reduce_sum(pre_noise**2))
+    #     loss_tv = self.tv_loss(pre_noise)
+
+    #     r3 = 1
+    #     if index > 100:
+    #         r3 *= 0.1
+    #     if index > 200:
+    #         r3 *= 0.1
+
+    #     loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv
+    #     finetune_grad = tf.gradients(loss_weight,self.noise)[0]    
+
+    #     tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
+    #     tmp_noise = tmp_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
+    #     tmp_noise = tf.clip_by_value(tmp_noise,-0.25, 0.25)
+
+    #     # self.loss_feat_1 = loss_feat_1
+    #     # self.loss_feat_2 = loss_feat_2
+    #     # self.loss_weight = loss_weight
+    #     return tmp_noise, loss1_v
+    
+    def update_op(self,new_noise):
+        return tf.assign(self.noise,new_noise)
+
+    def make_feed_dict(self,input_image,target_feature,label_feature,mask,index):
+        return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
+       
+    def init_noise(self):
+        ## init
+        tmp_noise_init = self.xavier_initializer([1,299,299,3])
+        grad_init = 0.
+        self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
+        self.v1_grad = tf.get_variable('noise_grad',shape = [1,299,299,3],initializer= tf.constant_initializer(grad_init))
+
+    def attack_graph(self,lr = 1.,momentum = 0.3):
+        tmp_noise = self.pre_noise(self.mask)
+        combine_images = self.input_images + tmp_noise
 
         ### 调参
         alpha1 = 1
         alpha2 = 1  
         
         with_noise_feat = self.tensor_normal_2(self.model(combine_images))
-        loss_feat_1 = tf.reduce_sum(label_feature * with_noise_feat) 
-        loss_feat_2 = tf.reduce_sum(target_feature * with_noise_feat)
+        loss_feat_1 = tf.reduce_sum(self.label_feature * with_noise_feat) 
+        loss_feat_2 = tf.reduce_sum(self.target_feature * with_noise_feat)
 
         alpha1 = tf.cast(tf.cond(loss_feat_1 < 0.3,lambda: 1.,lambda: 0.), tf.float32)
         alpha2 = tf.cast(tf.cond(loss_feat_1 > 0.7,lambda: 1.,lambda: 0.), tf.float32)
 
         loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
-        feat_grad = tf.gradients(ys = loss_feat,xs = self.noise)[0] ## (299,299,3)
 
-        loss1_v = feat_grad * (1 - momentum) + old_grad * momentum
-        loss_l2 = tf.sqrt(tf.reduce_sum(pre_noise**2))
-        loss_tv = self.tv_loss(pre_noise)
+        # feat_grad = tf.gradients(ys = loss_feat,xs = self.noise)[0] ## (299,299,3)
+        feat_grad = tf.gradients(ys = loss_feat,xs = self.tmp_noise)[0] ## (299,299,3)
 
-        r3 = 1
-        if index > 100:
-            r3 *= 0.1
-        if index > 200:
-            r3 *= 0.1
+        loss1_grad = feat_grad * (1 - momentum) + self.v1_grad * momentum
+        # loss1_v = feat_grad * (1 - momentum) + old_grad * momentum
+
+        loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
+        loss_tv = self.tv_loss(tmp_noise)
+
+        r3 = 1.
+        r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv
-        finetune_grad = tf.gradients(loss_weight,self.noise)[0]    
+        # finetune_grad = tf.gradients(loss_weight,self.noise)[0]    
+        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
 
-        tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
-        tmp_noise = tmp_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
-        tmp_noise = tf.clip_by_value(tmp_noise,-0.25, 0.25)
+        # tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
+        update_noise = self.tmp_noise - lr * (finetune_grad + loss1_grad)
+        update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
+        update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
 
-        # self.loss_feat_1 = loss_feat_1
-        # self.loss_feat_2 = loss_feat_2
-        # self.loss_weight = loss_weight
-        return tmp_noise, loss1_v
-    
-    def update_op(self,new_noise):
-        return tf.assign(self.noise,new_noise)
+        self.loss_feat_1 = loss_feat_1
+        self.loss_feat_2 = loss_feat_2
+        self.loss_weight = loss_weight
 
-    def make_feed_dict(self,input_image,label_feature,target_feature,mask):
-        return {self.input_images:input_image,self.label_feature:label_feature,self.target_feature:target_feature,self.mask:mask} 
-
+        # _noise,_feat_1,_feat_2,_weight = self.sess.run([update_noise,self.loss_feat_1,self.loss_feat_2,self.loss_weight],feed_dict = {self.input_images:_image_content})
+        update_value = tf.assign(self.tmp_noise,update_noise)
+        update_grad = tf.assign(self.v1_grad,loss1_grad)
+        return tf.group(update_value,update_grad)
 
     def attack(self):
-        self.label_feature = tf.placeholder(tf.float32,shape = [2048])
-        self.target_feature = tf.placeholder(tf.float32,shape = [2048])
-    
+
 
         ## restore and init
         self.sess.run(tf.global_variables_initializer())
+        variables_to_restore_image = [v for v in tf.global_variables() if 'noise' not in v.name]
+        self.saver = tf.train.Saver(variables_to_restore_image,max_to_keep = 5)
         self.saver.restore(self.sess, self.pre_model)
         
         root_dir = os.path.join('data/feature')
         attack_tasks = os.listdir(root_dir)
         for item_index in attack_tasks:
+
             _image_path,_image_content,_label,_target = next(self.attack_generator)
-            old_grad = tf.constant(0.)
+            lr = 1
+            momentum = 0.3
+            train_op = self.attack_graph()
+
             with open(os.path.join(root_dir,item_index,'target_mean_feature.pickle'),'rb') as f_t,open(os.path.join(root_dir,item_index,'label_mean_feature.pickle'),'rb') as f_l,open(os.path.join(root_dir,item_index,'label_mask.pickle'),'rb') as f_m:
                 target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
                 label_feature = self.normal_2(pickle.load(f_l)) # (2048)
                 _image_content = np.reshape( _image_content, [1,299,299,3] ) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
-                # mask = np.reshape( pickle.load(f_m),[1,299,299,1] ) * 0.   # (1,299,299,3)
                 print('start attack %s' % _image_path)
                 for i in tqdm(range(1,301)):
-                    pre_noise = self.pre_noise(mask)
-                    combine_images = _image_content + pre_noise
-                    self.noise,old_grad = self.feat_graph(combine_images,pre_noise,label_feature,target_feature,old_grad,index = i)
-                    if(i == 100):
-                        _noise = self.sess.run([self.noise],feed_dict = {self.input_images:_image_content})
-                        print('start write')
-                        # print('feat_label: %s' % _feat_1)
-                        # print('feat_target: %s' % _feat_2)
-                        # print('weight_fit: %s' % _weight)
+                    feed_dict = self.make_feed_dict(_image_content,target_feature,label_feature,mask,i)
+                    _ = self.sess.run(train_op,feed_dict = feed_dict)
+
+                    if(i % 100 == 0):
+                        _, _feat_1,_feat_2,_weight = self.sess.run([train_op,self.loss_feat_1,self.loss_feat_2,self.loss_weight],feed_dict = feed_dict)
+                        print('feat_label: %s' % _feat_1)
+                        print('feat_target: %s' % _feat_2)
+                        print('weight_fit: %s' % _weight)
+                        _noise = self.sess.run(self.tmp_noise,feed_dict = feed_dict)
                         write_noise = self.sess.run(self.write_noise(mask,_noise))
                         new_content = self.resize(self.float2rgb(np.clip(write_noise + _image_content,-1,1)))
                         noise_image = self.resize(self.float2rgb(write_noise))
@@ -298,7 +362,7 @@ class Classify(op_base):
                         noise_image_path = os.path.join('data','result','noise.png')
                         cv2.imwrite(image_combine_with_noise,new_content)
                         cv2.imwrite(noise_image_path,noise_image)
-                        return 
+                         
 
                 print('finish %s' % _image_path)
 
