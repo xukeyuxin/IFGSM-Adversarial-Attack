@@ -17,7 +17,7 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
+        self.input_images = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,3])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,3])
         self.gaussian_blur = GaussianBlur()
 
@@ -295,8 +295,8 @@ class Classify(op_base):
                     # print('weight_fit: %s' % _weight)
                     # self.noise = tf.convert_to_tensor(_noise)
 
-                    if(i % 10 == 0):
-                        _noise,_feat_1,_feat_2,_weight = self.sess.run([self.noise,self.loss_feat_1,self.loss_feat_2 ,self.loss_weight],feed_dict = {self.input_images:combine_images.eval()})
+                    if(i % 25 == 0):
+                        _noise,_feat_1,_feat_2,_weight = self.sess.run([self.noise,self.loss_feat_1,self.loss_feat_2 ,self.loss_weight],feed_dict = {self.input_images:_image_content})
                         print('feat_label: %s' % _feat_1)
                         print('feat_target: %s' % _feat_2)
                         print('weight_fit: %s' % _weight)
