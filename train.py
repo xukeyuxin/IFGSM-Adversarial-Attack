@@ -188,8 +188,8 @@ class Classify(op_base):
         loss_feat_1 = tf.reduce_sum(self.label_feature * with_noise_feat) 
         loss_feat_2 = tf.reduce_sum(self.target_feature * with_noise_feat)
 
-        alpha1 = tf.cast(tf.cond(loss_feat_1 < 0.3,lambda: 1.,lambda: 0.), tf.float32)
-        alpha2 = tf.cast(tf.cond(loss_feat_1 > 0.7,lambda: 1.,lambda: 0.), tf.float32)
+        alpha1 = tf.cast(tf.cond(loss_feat_1 < 0.3,lambda: 0.1,lambda: 5.), tf.float32)
+        alpha2 = tf.cast(tf.cond(loss_feat_2 > 0.7,lambda: 0.1,lambda: 5.), tf.float32)
 
         loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
 
@@ -238,8 +238,7 @@ class Classify(op_base):
         for item_index in attack_tasks:
 
             _image_path,_image_content,_label,_target = next(self.attack_generator)
-            lr = 1
-            momentum = 0.3
+
             train_op = self.attack_graph()
 
             with open(os.path.join(root_dir,item_index,'target_mean_feature.pickle'),'rb') as f_t,open(os.path.join(root_dir,item_index,'label_mean_feature.pickle'),'rb') as f_l,open(os.path.join(root_dir,item_index,'label_mask.pickle'),'rb') as f_m:
