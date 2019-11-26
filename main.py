@@ -59,8 +59,12 @@ for dir in dir_names:
         os.mkdir(dir)
 
 if __name__ == '__main__':
-    config = tf.ConfigProto(allow_soft_placement=True)
+    config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+    config.gpu_options.visible_device_list = str(0)
+    # config.log_device_placement=False
+    # config = tf.ConfigProto(allow_soft_placement=True)
+    # config.gpu_options.allow_growth = True
 
     with tf.Session(config = config) as sess:
         model = Classify(sess,args)

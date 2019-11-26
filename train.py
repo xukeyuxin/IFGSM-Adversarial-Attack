@@ -204,10 +204,10 @@ class Classify(op_base):
         return tf.reduce_sum(temp)
     
     def pre_noise(self,mask):
-        return (mask *  (self.gaussian_blur(self.noise) + 1.) / 2.) * 2. - 1.
+        return mask * self.gaussian_blur(self.noise) 
     
     def write_noise(self,mask,noise):
-        return (mask *  (self.gaussian_blur(noise) + 1.) / 2.) * 2. - 1.
+        return mask * self.gaussian_blur(noise) 
     
     def float2rgb(self,input):
         return input * 127.5 + 127.5
@@ -215,7 +215,7 @@ class Classify(op_base):
     def resize(self,input):
         return np.reshape(input,(299,299,3))
 
-    def feat_graph(self,combine_images,pre_noise,label_feature,target_feature,old_grad,momentum = 0.5, lr = 1.):
+    def feat_graph(self,combine_images,pre_noise,label_feature,target_feature,old_grad,momentum = 0.25, lr = 1.):
 
         ### 调参
         alpha1 = 1
@@ -237,7 +237,7 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(pre_noise**2))
         loss_tv = self.tv_loss(pre_noise)
 
-        r3 = 0.1
+        r3 = 1
         # if index > 100:
         #     r3 *= 0.1
         # if index > 200:
@@ -277,7 +277,8 @@ class Classify(op_base):
                 target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
                 label_feature = self.normal_2(pickle.load(f_l)) # (2048)
                 _image_content = np.reshape( _image_content, [1,299,299,3] ) # (1,299,299,3)
-                mask = np.reshape( pickle.load(f_m),[1,299,299,1] )# (1,299,299,3)
+                mask = np.ones([1,299,299,1])
+                # mask = np.reshape( pickle.load(f_m),[1,299,299,1] ) * 0.   # (1,299,299,3)
                 print('start attack %s' % _image_path)
                 for i in tqdm(range(1000)):
                     pre_noise = self.pre_noise(mask)
@@ -290,7 +291,6 @@ class Classify(op_base):
                     self.noise = tf.convert_to_tensor(_noise)
                     if(i % 10 == 0):
                         write_noise = self.sess.run(self.write_noise(mask,_noise))
-                        print(type(write_noise))
                         new_content = self.resize(self.float2rgb(np.clip(write_noise + _image_content,-1,1)))
                         noise_image = self.resize(self.float2rgb(write_noise))
                         image_combine_with_noise = os.path.join('data','result',_image_path)
