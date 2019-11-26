@@ -66,7 +66,8 @@ if __name__ == '__main__':
         model = Classify(sess,args)
         # model.train()
         # model.eval_finetune()
-        model.eval_label()
+        # model.find_sim()
+        model.attack()
         # if(args.action == 'train'):
         #     model.train(is_training = True)
         # elif(args.action == 'test'):

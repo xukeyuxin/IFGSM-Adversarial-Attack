@@ -6,16 +6,26 @@ import pickle
 from op_base import op_base
 import os
 import cv2
+import math
 from tqdm import tqdm
+from tensorflow.contrib.layers import xavier_initializer
+from guass import GaussianBlur
+import numpy as np
+
 class Classify(op_base):
     def __init__(self,sess,args):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
+        self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,3])
+        self.gaussian_blur = GaussianBlur()
+
+        self.init_noise()
         self.model = ResNet(self.input_images, is_training = False)
+        self.model()
         
-        self.init_model()
+        self.init_model(noise = True)
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
     def convert(self,input):
@@ -37,8 +47,10 @@ class Classify(op_base):
             grad_and_var = (gradient, v)
             average_grads.append(grad_and_var)
         return average_grads
-    def init_model(self):
-        self.model()
+
+    def init_model(self,noise = False):
+        # self.model.build_model(noise = noise)
+
         self.global_step = tf.get_variable(name='global_step', shape=[], initializer=tf.constant_initializer(0),dtype= tf.int64,
                             trainable=False)
         lr = tf.train.exponential_decay(
@@ -87,113 +99,24 @@ class Classify(op_base):
 
         # .argsort()[-self.choose_dims:]
         # print(np.squeeze(pred).argsort(a))
-    def normal_2(input):
+    def normal_2(self,input):
         return  input / ( np.sqrt( np.sum(np.square(input) ) ) )
-    # def eval_label(self):
-    #     task_num = 1216
-    #     total_index = 1
-    #     f_f = open('attack_sim_feat.pickle','ab+')
-    #     f_l = open('attack_sim_feat.pickle','ab+')
-    #     while True:
-    #         try:
-    #             _image_name,_image_content,_label,_target = next(self.attack_generator)
-    #             simliar_value = 0.
-
-    #             _image_content = np.expand_dims(_image_content,axis = 0)
-    #             feat = tf.squeeze(self.model.feat)
-    #             logit = tf.nn.softmax(self.model.logit)
-    #             _label_feat,_label_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
-
-    #             _label_feat_normal = self.normal_2(_label_feat)
-
-    #             _target_generator = self.target_generator(_target)
-
-    #             best_feat_value = 0.
-    #             best_logit_arg = np.argmax()
-    #             best_pred = np.zeros((1000))
-    #             while True:  
-    #                 target_content, target_path = next(_target_generator)
-    #                 target_content = np.expand_dims(target_content,axis = 0)
-    #                 _target_feat,_target_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
-
-    #                 cos_dis = _label_feat_normal * self.normal_2(_target_feat)
-    #                 if(cos_dis > best_feat_value):
-    #                     choose_feat_target = target_path
-    #                     best_feat_value = cos_dis
-
-
-
-    #             _item = (_label,_label_feat,_label_logit)
-    #             pickle.dump(_item,f)
-    #             print('analy finish %s / %s' % (total_index,task_num))
-    #             total_index += 1
-
-    #         except StopIteration:
-    #             print('finish all')
-
-
     
-    def eval_new(self):
-        task_num = 1216
-        index = 1
-        feat = tf.squeeze(self.model.feat)
-        logit = tf.nn.softmax(self.model.logit)
+    def tensor_normal_2(self,input):
+        return input / tf.sqrt(tf.reduce_sum(tf.square(input)))
 
-        ## restore and init
-        self.sess.run(tf.global_variables_initializer())
-        self.saver.restore(self.sess, self.pre_model)
-        while True:
-            try:
-                root_pickle_dir = os.path.join('data/features',str(index))
-                if(not os.path.exists(root_pickle_dir)):
-                    os.mkdir(root_pickle_dir)
-                
-                f_a = open(os.path.join(root_pickle_dir,'single_label.pickle'),'ab+')
-                f_l = open(os.path.join(root_pickle_dir,'label_feature_logit.pickle'),'ab+')
-                f_t = open(os.path.join(root_pickle_dir,'target_feature_logit.pickle'),'ab+')
+    def xavier_initializer(self,shape, factor = 1.):
+        factor = float(factor)
+        fan_in = shape[-1]
+        fan_out = shape[-1]
+        variation = (2/( fan_in +fan_out))*factor
+        dev = math.sqrt(variation)
+        result = tf.truncated_normal(shape,mean = 0, stddev = dev)
+        return result
 
-                _image_name,_image_content,_label,_target = next(self.attack_generator)
-                _image_content = np.expand_dims(_image_content,axis = 0)
-                attack_label_feat,attack_label_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
-                attack_label_logit = np.squeeze(attack_label_logit)
-                attack_tuple = (_image_name,attack_label_feat,attack_label_logit)
-                pickle.dump(attack_tuple,f_a)
-
-                ### label 
-                _label_generator = self.target_generator(_label)
-                while True:  
-                    try:
-                        label_content, label_path = next(_label_generator)
-                        label_content = np.expand_dims(label_content,axis = 0)
-                        label_feat,label_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:_image_content})
-                        label_logit = np.squeeze(label_logit)
-                        
-                        item_tuple = (label_path,label_feat,label_logit)
-                        pickle.dump(item_tuple,f_l)
-                    except StopIteration:
-                        print('analy label finish %s / %s' % (index,task_num))
-                        break
-                    
-
-                ### target 
-                _target_generator = self.target_generator(_target)
-                while True:  
-                    try:
-                        target_content, target_path = next(_target_generator)
-                        target_content = np.expand_dims(target_content,axis = 0)
-                        target_feat,target_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:target_content})
-                        target_logit = np.squeeze(target_logit)
-                        item_tuple = (target_path,target_feat,target_logit)
-                        pickle.dump(item_tuple,f_t)
-                    except StopIteration:
-                        print('analy target finish %s / %s' % (index,task_num))
-                        break
-                
-                index += 1
-
-            except StopIteration:
-                print('finish all')
-
+    def init_noise(self):
+        self.noise = self.xavier_initializer([1,299,299,3])
+        # tf.get_variable('noise', [self.image_height, self.image_weight,3], tf.float32, xavier_initializer())
 
     def eval_label(self):
         feat = tf.squeeze(self.model.feat)
@@ -223,6 +146,159 @@ class Classify(op_base):
                     print('analy target finish %s / %s' % (index,1000))
                     break
             
+    def find_sim(self):
+        def cal(logits, features):
+            logits = np.asarray(logits)
+            features = np.asarray(features)
+            logits_max = np.max(logits,axis = -1)
+            logits_arg = logits_max.argsort()[-100:]
+            choose_feature = np.mean(features[logits_arg],axis = 0)
+            return choose_feature
+        root_dir = os.path.join('data/feature')
+        root_mask_dir = os.path.join('data/mask_images')
+        class_dir = os.listdir(root_dir)
+        for item in class_dir:
+            logits_1 = []
+            features_1 = []
+
+            logits_2 = []
+            features_2 = []
+
+            single = open(os.path.join(root_dir,item,'single_label.pickle'),'rb')
+            image_name = pickle.load(single)[0]
+            single.close()
+
+            with open(os.path.join(root_dir,item,'target_feature_logit.pickle'),'rb') as f1,open(os.path.join(root_dir,item,'label_feature_logit.pickle'),'rb') as f2, open(os.path.join(root_dir,item,'target_mean_feature.pickle'),'ab+') as f_w, open(os.path.join(root_dir,item,'label_mean_feature.pickle'),'ab+') as f_l,open(os.path.join(root_dir,item,'label_mask.pickle'),'ab+') as f_m:
+                while True:
+                    try:
+                        _path,feature,logit = pickle.load(f1)
+                        logits_1.append(logit)
+                        features_1.append(feature)
+                    except EOFError:
+                        print('load finish')
+                        break
+                while True:
+                    try:
+                        _path,feature,logit = pickle.load(f2)
+                        logits_2.append(logit)
+                        features_2.append(feature)
+                    except EOFError:
+                        print('load finish')
+                        break
+                
+                load_mask = 1. - (cv2.imread(os.path.join(root_mask_dir,image_name),0).astype(np.float32) / 255.)
+                load_mask = cv2.threshold(load_mask,0.5,1,cv2.THRESH_BINARY)
+                pickle.dump(load_mask,f_m)
+                target_feature = cal(logits_1, features_1)
+                pickle.dump(target_feature,f_w)
+
+                label_feature = cal(logits_2, features_2)
+                pickle.dump(label_feature,f_l)
+
+    
+    def tv_loss(self,input_t):
+
+        temp1 = tf.concat( [ input_t[:,1:,:,:], tf.expand_dims(input_t[:,-1,:,:],axis = 1)],axis = 1 )
+        temp2 = tf.concat( [ input_t[:,:,1:,:], tf.expand_dims(input_t[:,:,-1,:],axis = 2)],axis = 2 )
+        temp = (input_t - temp1)**2 +  (input_t - temp2)**2
+        return tf.reduce_sum(temp)
+    
+    def pre_noise(self,mask):
+        return mask * self.gaussian_blur(self.noise)
+    
+    def write_noise(self,mask,noise):
+        return mask * self.gaussian_blur(noise)
+    
+    def float2rgb(self,input):
+        return input * 127.5 + 127.5
+    
+    def resize(self,input):
+        return np.reshape(input,(299,299,3))
+
+    def feat_graph(self,combine_images,pre_noise,label_feature,target_feature,old_grad,momentum = 0.5, lr = 1.):
+
+        ### 调参
+        alpha1 = 1
+        alpha2 = 1  
+        
+        with_noise_feat = self.tensor_normal_2(self.model(combine_images))
+        loss_feat_1 = tf.reduce_sum(label_feature * with_noise_feat) 
+        loss_feat_2 = tf.reduce_sum(target_feature * with_noise_feat)
+
+        alpha1 = tf.cast(tf.cond(loss_feat_1 < 0.3,lambda: 1.,lambda: 0.), tf.float32)
+        alpha2 = tf.cast(tf.cond(loss_feat_1 > 0.7,lambda: 1.,lambda: 0.), tf.float32)
+
+        loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
+        feat_grad = tf.gradients(ys = loss_feat,xs = self.noise)[0] ## (299,299,3)
+        # grads = opt.compute_gradients(loss_feat,self.get_vars('noise'))
+        #  l2_tv_graph
+
+        loss1_v = feat_grad * (1 - momentum) + old_grad * momentum
+        loss_l2 = tf.sqrt(tf.reduce_sum(pre_noise**2))
+        loss_tv = self.tv_loss(pre_noise)
+
+        r3 = 1
+        # if index > 100:
+        #     r3 *= 0.1
+        # if index > 200:
+        #     r3 *= 0.1
+
+        loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv
+        finetune_grad = tf.gradients(loss_weight,self.noise)[0]    
+
+        tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
+        tmp_noise = tmp_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
+        tmp_noise = tf.clip_by_value(tmp_noise,-0.25, 0.25)
+
+        return tmp_noise, loss1_v , loss_feat_1 , loss_feat_2, loss_weight
+    
+    def update_op(self,new_noise):
+        return tf.assign(self.noise,new_noise)
+
+    def make_feed_dict(self,input_image,label_feature,target_feature,mask):
+        return {self.input_images:input_image,self.label_feature:label_feature,self.target_feature:target_feature,self.mask:mask} 
+
+
+    def attack(self):
+        self.label_feature = tf.placeholder(tf.float32,shape = [2048])
+        self.target_feature = tf.placeholder(tf.float32,shape = [2048])
+    
+
+        ## restore and init
+        self.sess.run(tf.global_variables_initializer())
+        self.saver.restore(self.sess, self.pre_model)
+        
+        root_dir = os.path.join('data/feature')
+        attack_tasks = os.listdir(root_dir)
+        for item_index in attack_tasks:
+            _image_path,_image_content,_label,_target = next(self.attack_generator)
+            old_grad = 0.
+            with open(os.path.join(root_dir,item_index,'target_mean_feature.pickle'),'rb') as f_t,open(os.path.join(root_dir,item_index,'label_mean_feature.pickle'),'rb') as f_l,open(os.path.join(root_dir,item_index,'label_mask.pickle'),'rb') as f_m:
+                target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
+                label_feature = self.normal_2(pickle.load(f_l)) # (2048)
+                _image_content = np.reshape( _image_content, [1,299,299,3] ) # (1,299,299,3)
+                mask = np.reshape( pickle.load(f_m),[1,299,299,1] )# (1,299,299,3)
+                print('start attack %s' % _image_path)
+                for i in tqdm(range(1000)):
+                    pre_noise = self.pre_noise(mask)
+                    combine_images = _image_content + pre_noise
+                    update_noise, _old_grad,feat_1,feat_2,weight = self.feat_graph(combine_images,pre_noise,label_feature,target_feature,old_grad)
+                    _noise,old_grad,_feat_1,_feat_2,_weight = self.sess.run([update_noise, _old_grad,feat_1,feat_2,weight],feed_dict = {self.input_images:combine_images.eval()})
+                    print('feat_label: %s' % _feat_1)
+                    print('feat_target: %s' % _feat_2)
+                    print('weight_fit: %s' % _weight)
+                    self.noise = tf.convert_to_tensor(_noise)
+                    if(i % 10 == 0):
+                        write_noise = self.sess.run(self.write_noise(mask,_noise))
+                        print(type(write_noise))
+                        new_content = self.resize(self.float2rgb(np.clip(write_noise + _image_content,-1,1)))
+                        noise_image = self.resize(self.float2rgb(write_noise))
+                        image_combine_with_noise = os.path.join('data','result',_image_path)
+                        noise_image_path = os.path.join('data','result','noise.png')
+                        cv2.imwrite(image_combine_with_noise,new_content)
+                        cv2.imwrite(noise_image_path,noise_image)
+                print('finish %s' % _image_path)
+
 
 
 

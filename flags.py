@@ -39,7 +39,7 @@ tf.app.flags.DEFINE_integer('class_num', 1000,
   "distinct class number")
 tf.app.flags.DEFINE_integer('resnet_size', 101,
   "resnet block layer number [ 18, 34, 50, 101, 152, 200 ]")
-tf.app.flags.DEFINE_string('data_format', 'channels_first',
+tf.app.flags.DEFINE_string('data_format', 'channels_last',
   "data format for the input and output data [ channels_first | channels_last ]")
 tf.app.flags.DEFINE_integer('image_size', 224,
    "default image size for model input layer")
