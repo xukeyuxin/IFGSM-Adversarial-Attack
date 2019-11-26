@@ -78,30 +78,6 @@ class Classify(op_base):
         grads = self.optimizer.compute_gradients(loss,tf.trainable_variables())
         return grads
 
-    def eval_finetune(self):
-
-        logit = self.model.logit
-        prob_topk, pred_topk = tf.nn.top_k(logit, k=5)
-
-        self.sess.run(tf.global_variables_initializer())
-        self.saver.restore(self.sess, self.pre_model)
-        
-        short_queue_content = []
-        short_queue_label = []
-        
-        root_dir = 'data/ISLVRC2012/n01440764'
-        image_test = os.listdir(root_dir)
-        for item in np.random.choice(image_test,1):
-            # _image_content,_label,_target = next(self.attack_generator)
-            short_queue_content.append(self.data.rbg2float(cv2.imread(os.path.join(root_dir,item))))
-            
-        _image_content = np.asarray(short_queue_content)
-        pred, _prob_topk, _pred_topk = self.sess.run([logit,prob_topk, pred_topk],feed_dict = {self.input_images:_image_content})
-
-        print(np.squeeze(_prob_topk), np.squeeze(_pred_topk))
-
-        # .argsort()[-self.choose_dims:]
-        # print(np.squeeze(pred).argsort(a))
     def normal_2(self,input):
         return  input / ( np.sqrt( np.sum(np.square(input) ) ) )
     
@@ -117,39 +93,7 @@ class Classify(op_base):
         # result = tf.truncated_normal(shape,mean = 0, stddev = dev)
         result = np.random.normal(0,dev,shape)
         return result
-
-    # def init_noise(self):
-    #     self.noise = self.xavier_initializer([1,299,299,3])
-    #     # tf.get_variable('noise', [self.image_height, self.image_weight,3], tf.float32, xavier_initializer())
-
-    def eval_label(self):
-        feat = tf.squeeze(self.model.feat)
-        logit = tf.nn.softmax(self.model.logit)
-
-        ## restore and init
-        self.sess.run(tf.global_variables_initializer())
-        self.saver.restore(self.sess, self.pre_model)
-        for index in tqdm(range(1,1001)):
-            root_pickle_dir = os.path.join('data/features_class')
-            if(not os.path.exists(root_pickle_dir)):
-                os.mkdir(root_pickle_dir)
-            
-            f_a = open(os.path.join(root_pickle_dir,'%s.pickle' % index),'ab+')
-
-            ### target 
-            _target_generator = self.target_generator(index)
-            while True:  
-                try:
-                    target_content, target_path = next(_target_generator)
-                    target_content = np.expand_dims(target_content,axis = 0)
-                    target_feat,target_logit = self.sess.run([feat,logit],feed_dict = {self.input_images:target_content})
-                    target_logit = np.squeeze(target_logit)
-                    item_tuple = (target_path,target_feat,target_logit)
-                    pickle.dump(item_tuple,f_a)
-                except StopIteration:
-                    print('analy target finish %s / %s' % (index,1000))
-                    break
-            
+       
     def find_sim(self):
         def cal(logits, features):
             logits = np.asarray(logits)
@@ -219,47 +163,6 @@ class Classify(op_base):
     def resize(self,input):
         return np.reshape(input,(299,299,3))
 
-    # def feat_graph(self,mask,_image_content,label_feature,target_feature,old_grad,momentum = 0.25, lr = 1.,index = 0):
-        
-    #     pre_noise = self.pre_noise(mask)
-    #     combine_images = _image_content + pre_noise
-
-    #     ### 调参
-    #     alpha1 = 1
-    #     alpha2 = 1  
-        
-    #     with_noise_feat = self.tensor_normal_2(self.model(combine_images))
-    #     loss_feat_1 = tf.reduce_sum(label_feature * with_noise_feat) 
-    #     loss_feat_2 = tf.reduce_sum(target_feature * with_noise_feat)
-
-    #     alpha1 = tf.cast(tf.cond(loss_feat_1 < 0.3,lambda: 1.,lambda: 0.), tf.float32)
-    #     alpha2 = tf.cast(tf.cond(loss_feat_1 > 0.7,lambda: 1.,lambda: 0.), tf.float32)
-
-    #     loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
-    #     feat_grad = tf.gradients(ys = loss_feat,xs = self.noise)[0] ## (299,299,3)
-
-    #     loss1_v = feat_grad * (1 - momentum) + old_grad * momentum
-    #     loss_l2 = tf.sqrt(tf.reduce_sum(pre_noise**2))
-    #     loss_tv = self.tv_loss(pre_noise)
-
-    #     r3 = 1
-    #     if index > 100:
-    #         r3 *= 0.1
-    #     if index > 200:
-    #         r3 *= 0.1
-
-    #     loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv
-    #     finetune_grad = tf.gradients(loss_weight,self.noise)[0]    
-
-    #     tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
-    #     tmp_noise = tmp_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
-    #     tmp_noise = tf.clip_by_value(tmp_noise,-0.25, 0.25)
-
-    #     # self.loss_feat_1 = loss_feat_1
-    #     # self.loss_feat_2 = loss_feat_2
-    #     # self.loss_weight = loss_weight
-    #     return tmp_noise, loss1_v
-    
     def update_op(self,new_noise):
         return tf.assign(self.noise,new_noise)
 
@@ -365,48 +268,6 @@ class Classify(op_base):
                          
 
                 print('finish %s' % _image_path)
-
-
-
-
-    def eval(self):
-        _image_content,_label,_target = next(self.attack_generator)
-        simliar_value = 0.
-        _target_generator = self.target_generator(_target)
-        while True:
-            target_mix = []
-            target_path_mix = []
-            for i in range(self.batch_size):
-                try:
-                    target_content, target_path = next(_target_generator)
-                    target_mix.append(target_content)
-                    target_path_mix.append(target_path)
-                except StopIteration:
-                    if(target_mix):
-                        print('finish add target %s' % _target)
-                        break
-                    else:
-                        print('find simliar_value: %s simliar_path: %s' % (simliar_value,simliar_path))
-                        return 
-            print('analy new batch')
-            target_mix = np.asarray(target_mix)
-            label_mix = np.asarray([_image_content])
-
-            _target_feat = self.sess.run(self.feat,feed_dict = {self.input_images:target_mix})
-            _label_feat = self.sess.run(self.feat,feed_dict = {self.input_images:label_mix})
-
-            target_feat = np.squeeze(_target_feat)
-            label_feat = np.squeeze(_label_feat)
-
-            similar_feat = np.array( [label_feat.reshape((-1)) for i in range(len(target_feat))] ) * target_feat
-            simliar_sum = np.sum( similar_feat,axis = (-1) )
-            _simliar_value = np.max(simliar_sum)
-            if(_simliar_value > simliar_value):
-                simliar_index = np.argmax(simliar_sum)
-                simliar_path = target_path_mix[simliar_index]
-                simliar_value = _simliar_value
-                print('find new path: %s' % simliar_path )
-        
 
     def train(self):
         self.data.load_fineune_data()
