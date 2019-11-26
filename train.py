@@ -237,7 +237,7 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(pre_noise**2))
         loss_tv = self.tv_loss(pre_noise)
 
-        r3 = 1
+        r3 = 0.1
         # if index > 100:
         #     r3 *= 0.1
         # if index > 200:
