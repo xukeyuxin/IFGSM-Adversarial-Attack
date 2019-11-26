@@ -234,23 +234,22 @@ class Classify(op_base):
                 _image_content = np.reshape( _image_content, [1,299,299,3] ) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(1,301)):
+                for i in tqdm(range(1,201)):
                     feed_dict = self.make_feed_dict(_image_content,target_feature,label_feature,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
-                    if(i % 100 == 0):
-                        _, _feat_1,_feat_2,_weight = self.sess.run([train_op,self.loss_feat_1,self.loss_feat_2,self.loss_weight],feed_dict = feed_dict)
-                        print('feat_label: %s' % _feat_1)
-                        print('feat_target: %s' % _feat_2)
-                        print('weight_fit: %s' % _weight)
-                        _noise = self.sess.run(self.tmp_noise,feed_dict = feed_dict)
-                        write_noise = self.sess.run(self.write_noise(mask,_noise))
-                        new_content = self.resize(self.float2rgb(np.clip(write_noise + _image_content,-1,1)))
-                        noise_image = self.resize(self.float2rgb(write_noise))
-                        image_combine_with_noise = os.path.join('data','result',_image_path)
-                        noise_image_path = os.path.join('data','result','noise.png')
-                        cv2.imwrite(image_combine_with_noise,new_content)
-                        cv2.imwrite(noise_image_path,noise_image)
+                _, _feat_1,_feat_2,_weight = self.sess.run([train_op,self.loss_feat_1,self.loss_feat_2,self.loss_weight],feed_dict = feed_dict)
+                print('feat_label: %s' % _feat_1)
+                print('feat_target: %s' % _feat_2)
+                print('weight_fit: %s' % _weight)
+                _noise = self.sess.run(self.tmp_noise,feed_dict = feed_dict)
+                write_noise = self.sess.run(self.write_noise(mask,_noise))
+                new_content = self.resize(self.float2rgb(np.clip(write_noise + _image_content,-1,1)))
+                noise_image = self.resize(self.float2rgb(write_noise))
+                image_combine_with_noise = os.path.join('data','result',_image_path)
+                noise_image_path = os.path.join('data','result','noise.png')
+                cv2.imwrite(image_combine_with_noise,new_content)
+                cv2.imwrite(noise_image_path,noise_image)
                          
 
                 print('finish %s' % _image_path)
