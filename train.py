@@ -95,28 +95,25 @@ class Classify(op_base):
         return result
        
     def find_sim(self):
-        def cal(logits, features):
+        def cal(logits, features, target_index):
             logits = np.asarray(logits)
+            logits_value = logits[:,target_index - 1]
+            arg = np.argmax(logits_value)
             features = np.asarray(features)
-            logits_max = np.max(logits,axis = -1)
-            logits_arg = logits_max.argsort()[-100:]
-            choose_feature = np.mean(features[logits_arg],axis = 0)
-            return choose_feature
+            return features[arg]
+
         root_dir = os.path.join('data/feature')
-        root_mask_dir = os.path.join('data/mask_images')
-        class_dir = os.listdir(root_dir)
-        for item in class_dir:
+        for item in map(str,range(1,1218)):
+            im_p,image_content,label,target = next(self.attack_generator)
             logits_1 = []
             features_1 = []
 
-            logits_2 = []
-            features_2 = []
+            target = int(target)
 
             single = open(os.path.join(root_dir,item,'single_label.pickle'),'rb')
-            image_name = pickle.load(single)[0]
             single.close()
 
-            with open(os.path.join(root_dir,item,'target_feature_logit.pickle'),'rb') as f1,open(os.path.join(root_dir,item,'label_feature_logit.pickle'),'rb') as f2, open(os.path.join(root_dir,item,'target_mean_feature.pickle'),'ab+') as f_w, open(os.path.join(root_dir,item,'label_mean_feature.pickle'),'ab+') as f_l,open(os.path.join(root_dir,item,'label_mask.pickle'),'ab+') as f_m:
+            with open(os.path.join(root_dir,item,'target_feature_logit.pickle'),'rb') as f1,open(os.path.join(root_dir,item,'label_feature_logit.pickle'),'rb') as f2, open(os.path.join(root_dir,item,'target_best_feature.pickle'),'ab+') as f_w:
                 while True:
                     try:
                         _path,feature,logit = pickle.load(f1)
@@ -125,25 +122,13 @@ class Classify(op_base):
                     except EOFError:
                         print('load finish')
                         break
-                while True:
-                    try:
-                        _path,feature,logit = pickle.load(f2)
-                        logits_2.append(logit)
-                        features_2.append(feature)
-                    except EOFError:
-                        print('load finish')
-                        break
-                
-                load_mask = 1. - (cv2.imread(os.path.join(root_mask_dir,image_name),0).astype(np.float32) / 255.)
-                load_mask = cv2.threshold(load_mask,0.5,1,cv2.THRESH_BINARY)
-                pickle.dump(load_mask,f_m)
-                target_feature = cal(logits_1, features_1)
+
+                target_feature = cal(logits_1, features_1,target)
                 pickle.dump(target_feature,f_w)
 
-                label_feature = cal(logits_2, features_2)
-                pickle.dump(label_feature,f_l)
+                return
 
-    
+
     def tv_loss(self,input_t):
 
         temp1 = tf.concat( [ input_t[:,1:,:,:], tf.expand_dims(input_t[:,-1,:,:],axis = 1)],axis = 1 )
@@ -241,9 +226,11 @@ class Classify(op_base):
 
             train_op = self.attack_graph()
 
-            with open(os.path.join(root_dir,item_index,'target_mean_feature.pickle'),'rb') as f_t,open(os.path.join(root_dir,item_index,'label_mean_feature.pickle'),'rb') as f_l,open(os.path.join(root_dir,item_index,'label_mask.pickle'),'rb') as f_m:
+            with open(os.path.join(root_dir,item_index,'single_label.pickle'),'rb') as f_single, open(os.path.join(root_dir,item_index,'target_best_feature.pickle'),'rb') as f_t:
+
                 target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
-                label_feature = self.normal_2(pickle.load(f_l)) # (2048)
+                label_feature = self.normal_2(pickle.load(f_single)[1]) # (2048)
+
                 _image_content = np.reshape( _image_content, [1,299,299,3] ) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
