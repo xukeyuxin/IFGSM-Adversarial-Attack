@@ -234,7 +234,7 @@ class Classify(op_base):
                 _image_content = np.reshape( _image_content, [1,299,299,3] ) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(1,201)):
+                for i in tqdm(range(0,201)):
                     feed_dict = self.make_feed_dict(_image_content,target_feature,label_feature,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
