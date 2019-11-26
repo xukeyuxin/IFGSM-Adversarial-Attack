@@ -248,9 +248,9 @@ class Classify(op_base):
         tmp_noise = tmp_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
         tmp_noise = tf.clip_by_value(tmp_noise,-0.25, 0.25)
 
-        self.loss_feat_1 = loss_feat_1
-        self.loss_feat_2 = loss_feat_2
-        self.loss_weight = loss_weight
+        # self.loss_feat_1 = loss_feat_1
+        # self.loss_feat_2 = loss_feat_2
+        # self.loss_weight = loss_weight
         return tmp_noise, loss1_v
     
     def update_op(self,new_noise):
@@ -285,11 +285,12 @@ class Classify(op_base):
                     pre_noise = self.pre_noise(mask)
                     combine_images = _image_content + pre_noise
                     self.noise,old_grad = self.feat_graph(combine_images,pre_noise,label_feature,target_feature,old_grad,index = i)
-                    if(i == 300):
-                        _noise,_feat_1,_feat_2,_weight = self.sess.run([self.noise,self.loss_feat_1,self.loss_feat_2 ,self.loss_weight],feed_dict = {self.input_images:_image_content})
-                        print('feat_label: %s' % _feat_1)
-                        print('feat_target: %s' % _feat_2)
-                        print('weight_fit: %s' % _weight)
+                    if(i == 100):
+                        _noise = self.sess.run([self.noise],feed_dict = {self.input_images:_image_content})
+                        print('start write')
+                        # print('feat_label: %s' % _feat_1)
+                        # print('feat_target: %s' % _feat_2)
+                        # print('weight_fit: %s' % _weight)
                         write_noise = self.sess.run(self.write_noise(mask,_noise))
                         new_content = self.resize(self.float2rgb(np.clip(write_noise + _image_content,-1,1)))
                         noise_image = self.resize(self.float2rgb(write_noise))
