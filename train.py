@@ -281,21 +281,11 @@ class Classify(op_base):
                 mask = np.ones([1,299,299,1])
                 # mask = np.reshape( pickle.load(f_m),[1,299,299,1] ) * 0.   # (1,299,299,3)
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(1,300)):
+                for i in tqdm(range(1,301)):
                     pre_noise = self.pre_noise(mask)
                     combine_images = _image_content + pre_noise
-                    print(combine_images.shape)
-
                     self.noise,old_grad = self.feat_graph(combine_images,pre_noise,label_feature,target_feature,old_grad,index = i)
-                    
-                    # update_noise, _old_grad,feat_1,feat_2,weight = self.feat_graph(combine_images,pre_noise,label_feature,target_feature,old_grad)
-                    # _noise,old_grad,_feat_1,_feat_2,_weight = self.sess.run([update_noise, _old_grad,feat_1,feat_2,weight],feed_dict = {self.input_images:combine_images.eval()})
-                    # print('feat_label: %s' % _feat_1)
-                    # print('feat_target: %s' % _feat_2)
-                    # print('weight_fit: %s' % _weight)
-                    # self.noise = tf.convert_to_tensor(_noise)
-
-                    if(i % 100 == 0):
+                    if(i == 300):
                         _noise,_feat_1,_feat_2,_weight = self.sess.run([self.noise,self.loss_feat_1,self.loss_feat_2 ,self.loss_weight],feed_dict = {self.input_images:_image_content})
                         print('feat_label: %s' % _feat_1)
                         print('feat_target: %s' % _feat_2)
@@ -307,6 +297,7 @@ class Classify(op_base):
                         noise_image_path = os.path.join('data','result','noise.png')
                         cv2.imwrite(image_combine_with_noise,new_content)
                         cv2.imwrite(noise_image_path,noise_image)
+                        return 
 
                 print('finish %s' % _image_path)
 
