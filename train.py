@@ -204,10 +204,10 @@ class Classify(op_base):
         return tf.reduce_sum(temp)
     
     def pre_noise(self,mask):
-        return mask * self.gaussian_blur(self.noise)
+        return (mask *  (self.gaussian_blur(self.noise) + 1.) / 2.) * 2. - 1.
     
     def write_noise(self,mask,noise):
-        return mask * self.gaussian_blur(noise)
+        return (mask *  (self.gaussian_blur(noise) + 1.) / 2.) * 2. - 1.
     
     def float2rgb(self,input):
         return input * 127.5 + 127.5
