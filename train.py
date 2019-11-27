@@ -236,8 +236,8 @@ class Classify(op_base):
         r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
 
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
-        # finetune_grad = 0.
+        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        finetune_grad = 0.
 
         # tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
         update_noise = self.tmp_noise - lr * (finetune_grad + loss1_grad)
@@ -245,7 +245,7 @@ class Classify(op_base):
         update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
 
         self.total_loss = loss_total
-        self.loss_weight = loss_weight
+        self.loss_weight = loss_l2
 
         # _noise,_feat_1,_feat_2,_weight = self.sess.run([update_noise,self.loss_feat_1,self.loss_feat_2,self.loss_weight],feed_dict = {self.input_images:_image_content})
         update_value = tf.assign(self.tmp_noise,update_noise)
