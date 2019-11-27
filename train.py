@@ -232,7 +232,7 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
         loss_tv = self.tv_loss(tmp_noise)
 
-        r3 = 1.  
+        r3 = 1e-3  
         r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
 
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
