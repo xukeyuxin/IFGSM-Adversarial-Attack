@@ -25,6 +25,23 @@ class data(object):
 
     def rbg2float(self,input,need_resize = True):
         return  (cv2.resize(input,(299,299)) - 127.5) / 127.5
+        
+    def preprocess(self,img):
+        rawH = float(img.shape[0])
+        rawW = float(img.shape[1])
+        newH = 320.0
+        newW = 320.0
+        test_crop = 299.0 
+
+        if rawH <= rawW:
+            newW = (rawW/rawH) * newH
+        else:
+            newH = (rawH/rawW) * newW
+        img = cv2.resize(img, (int(newW), int(newH)))
+        img = img[int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newW-test_crop)/2):int((newW-test_crop)/2)+int(test_crop)]
+        # img = img[...,::-1]
+
+        return img
 
     def make_label(self,image_label):
         batch_data = []
@@ -65,14 +82,14 @@ class data(object):
         image_list = os.listdir(dirName)
         index = 0
         for item in image_list:
-            image_content = self.rbg2float(cv2.imread(os.path.join(dirName,item)))
+            image_content = self.preprocess(self.rbg2float(cv2.imread(os.path.join(dirName,item))))
             yield image_content, item
     
     def load_attack_image(self):
         with open(self.attack_image,'r') as f:
             reader = csv.reader(f)
             for im_p,label,target in reader:
-                image_content = self.rbg2float(cv2.imread(os.path.join(self.attack_content,im_p)))
+                image_content = self.preprocess(self.rbg2float(cv2.imread(os.path.join(self.attack_content,im_p))))
                 yield im_p,image_content,label,target
 
 
