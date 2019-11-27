@@ -257,7 +257,8 @@ class Classify(op_base):
         # tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
         update_noise = self.tmp_noise - lr * (finetune_grad + loss1_grad)
         update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
-        update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
+        update_noise = tf.clip_by_value(update_noise,-0.1, 0.1)
+        # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
 
         self.total_loss = loss_total
         self.loss_weight = loss_l2
