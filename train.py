@@ -240,11 +240,12 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
         loss_tv = self.tv_loss(tmp_noise)
 
-        r3 = 1. * (0.1 ** self.index / 200)
-
-        # r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
-        # r3 = tf.cond(self.index > 400,lambda: r3 * 0.1,lambda: r3)
-        # r3 = tf.cond(self.index > 600,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 400,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 600,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 700,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 800,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 1000,lambda: r3 * 0.1,lambda: r3)
 
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
         # loss_weight = r3 * 0.025 * loss_l2 
