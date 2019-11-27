@@ -240,6 +240,7 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
         loss_tv = self.tv_loss(tmp_noise)
 
+        r3 = 1.
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
         r3 = tf.cond(self.index > 400,lambda: r3 * 0.1,lambda: r3)
         r3 = tf.cond(self.index > 600,lambda: r3 * 0.1,lambda: r3)
