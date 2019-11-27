@@ -240,10 +240,11 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
         loss_tv = self.tv_loss(tmp_noise)
 
-        r3 = 1.
-        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 400,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 600,lambda: r3 * 0.1,lambda: r3)
+        r3 = 1. * (0.1 ** self.index / 200)
+
+        # r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
+        # r3 = tf.cond(self.index > 400,lambda: r3 * 0.1,lambda: r3)
+        # r3 = tf.cond(self.index > 600,lambda: r3 * 0.1,lambda: r3)
 
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
         # loss_weight = r3 * 0.025 * loss_l2 
@@ -298,7 +299,7 @@ class Classify(op_base):
                 _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(0,801)):
+                for i in tqdm(range(0,2001)):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
