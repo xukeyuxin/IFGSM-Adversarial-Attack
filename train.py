@@ -180,13 +180,16 @@ class Classify(op_base):
 
         return img
 
-    def attack_graph(self,lr = 0.1,momentum = 0.3):
+    def attack_graph(self,lr = 0.1,momentum = 0.):
         def entropy_loss(logits):
             label_loss_cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits))
             target_loss_cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits))
             self.target_loss = target_loss_cross_entropy
             self.label_loss = label_loss_cross_entropy
-            return  5 * target_loss_cross_entropy - label_loss_cross_entropy
+            alpha1 = tf.cond(label_loss_cross_entropy > 100,lambda: 0.,lambda: 1)
+            alpha2 = tf.cond(target_loss_cross_entropy < 1e-1,lambda: 0.,lambda: 1)
+
+            return  alpha1 * target_loss_cross_entropy - alpha2 * label_loss_cross_entropy
         
         def random_loss(combine_image):
             logit = self.model(combine_image)
