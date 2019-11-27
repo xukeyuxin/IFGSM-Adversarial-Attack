@@ -188,8 +188,8 @@ class Classify(op_base):
         label_loss_cross_entropy_rgb = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits))
         target_loss_cross_entropy_rgb = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits))
 
-        alpha1 = tf.cast(tf.cond(target_loss_cross_entropy_rgb < 1.,lambda: 0.,lambda: 1.), tf.float32)
-        alpha2 = tf.cast(tf.cond(target_loss_cross_entropy_rgb > 100.,lambda: 0.,lambda: 1.), tf.float32)
+        alpha1 = tf.cast(tf.cond(target_loss_cross_entropy_rgb < 1.,lambda: 0.1,lambda: 1.), tf.float32)
+        alpha2 = tf.cast(tf.cond(target_loss_cross_entropy_rgb > 100.,lambda: 0.1,lambda: 1.), tf.float32)
 
         loss_rbg = alpha1 * target_loss_cross_entropy_rgb - alpha2 * label_loss_cross_entropy_rgb 
 
@@ -281,7 +281,7 @@ class Classify(op_base):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
-                    if(i % 10 == 0):
+                    if(i % 50 == 0):
                         _, write_image, label_rgb,target_rgb,_weight = self.sess.run([train_op,self.combine_images,
                         self.label_loss_cross_entropy_rgb,
                         self.target_loss_cross_entropy_rgb,
