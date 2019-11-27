@@ -11,6 +11,7 @@ from tqdm import tqdm
 from tensorflow.contrib.layers import xavier_initializer
 from guass import GaussianBlur
 import numpy as np
+import random
 
 class Classify(op_base):
     def __init__(self,sess,args):
@@ -179,11 +180,18 @@ class Classify(op_base):
 
         return img
 
-    def attack_graph(self,lr = 1.,momentum = 0.):
+    def attack_graph(self,lr = 0.1,momentum = 0.3):
         def entropy_loss(logits):
             label_loss_cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits))
             target_loss_cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits))
-            return  target_loss_cross_entropy - label_loss_cross_entropy
+            self.target_loss = target_loss_cross_entropy
+            self.label_loss = label_loss_cross_entropy
+            return  5 * target_loss_cross_entropy - label_loss_cross_entropy
+        
+        def random_loss(combine_image):
+            logit = self.model(combine_image)
+            loss = entropy_loss(logit)
+            return loss
 
         tmp_noise = self.pre_noise(self.mask)
         self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
@@ -191,36 +199,35 @@ class Classify(op_base):
         self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
 
+        random_list = [self.combine_images_320_299,self.combine_images,self.combine_images_blur_320_299,self.combine_images_blur]
+
         ### 调参
         alpha1 = 1
-        alpha2 = 1  
-        
-        logits_base = self.model(self.combine_images)
-        logits_base_320_299 = self.model(self.combine_images_320_299)
-        logits_blur = self.model(self.combine_images_blur)
-        logits_blur_320_299 = self.model(self.combine_images_blur_320_299)
+        alpha2 = 1 
 
-        base_loss = entropy_loss(logits_base)
-        base_320_299_loss = entropy_loss(logits_base_320_299)
-        blur_loss = entropy_loss(logits_blur)
-        blur_320_299_loss = entropy_loss(logits_blur_320_299)
+        random_choise = tf.random_uniform([],0,4,dtype = tf.int32)
+        image_choose = tf.gather(random_list,random_choise)
+        loss_total = random_loss(image_choose)
 
-        loss_total = base_loss + base_320_299_loss + blur_loss + blur_320_299_loss
+        #### logits
+        # logits_base = self.model(self.combine_images)
+        # logits_base_320_299 = self.model(self.combine_images_320_299)
+        # logits_blur = self.model(self.combine_images_blur)
+        # logits_blur_320_299 = self.model(self.combine_images_blur_320_299)
 
-        # label_loss_cross_entropy_rgb = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_GBR))
-        # target_loss_cross_entropy_rgb = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_GBR))
-        # loss_bgr = target_loss_cross_entropy_gbr - label_loss_cross_entropy_gbr 
+        # base_loss = entropy_loss(logits_base)
+        # base_320_299_loss = entropy_loss(logits_base_320_299)
+        # blur_loss = entropy_loss(logits_blur)
+        # blur_320_299_loss = entropy_loss(logits_blur_320_299)
+        # loss_total = base_loss + base_320_299_loss + blur_loss + blur_320_299_loss
 
-        
-
+        #### feature
         # with_noise_feat = self.tensor_normal_2(self.model(combine_images))
         # loss_feat_1 = tf.reduce_sum(self.label_feature * with_noise_feat) 
         # loss_feat_2 = tf.reduce_sum(self.target_feature * with_noise_feat)
 
         # alpha1 = tf.cast(tf.cond(loss_feat_1 < 0.3,lambda: 0.1,lambda: 5.), tf.float32)
         # alpha2 = tf.cast(tf.cond(loss_feat_2 > 0.7,lambda: 0.1,lambda: 5.), tf.float32)
-
-
         # loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
 
         # feat_grad = tf.gradients(ys = loss_feat,xs = self.noise)[0] ## (299,299,3)
@@ -232,12 +239,15 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
         loss_tv = self.tv_loss(tmp_noise)
 
-        r3 = 1e-3  
+        r3 = 1.
         r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
-        finetune_grad = 0.
+        # loss_weight = r3 * 0.025 * loss_l2 
+
+        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        # finetune_grad = 0.
 
         # tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
         update_noise = self.tmp_noise - lr * (finetune_grad + loss1_grad)
@@ -270,7 +280,7 @@ class Classify(op_base):
 
             label_np = np.array([int(_label)])
 
-            _target = '333'
+            _target = '500'
             target_np = np.array([int(_target)])
 
             train_op = self.attack_graph()
@@ -286,17 +296,20 @@ class Classify(op_base):
                 _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(0,201)):
+                for i in tqdm(range(0,501)):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
-                    if(i % 10 == 0):
+                    if(i % 100 == 0):
                         
-                        _, write_image, _total_loss,_weight = self.sess.run([train_op,self.combine_images,
+                        _, write_image,target_loss,label_loss, _total_loss,_weight = self.sess.run([train_op,self.combine_images,
+                        self.target_loss,
+                        self.label_loss,
                         self.total_loss,
                         self.loss_weight],feed_dict = feed_dict)
 
-                        print('total_loss: %s' % _total_loss)
+                        print('target_loss: %s' % target_loss),
+                        print('label_loss: %s' % label_loss),
                         print('weight_fit: %s' % _weight)
 
                         write_image = self.float2rgb(np.squeeze(write_image))
