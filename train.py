@@ -186,7 +186,7 @@ class Classify(op_base):
             target_loss_cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits))
             self.target_loss = target_loss_cross_entropy
             self.label_loss = label_loss_cross_entropy
-            alpha1 = tf.cond(label_loss_cross_entropy > 100.,lambda: 0.,lambda: 1.)
+            alpha1 = tf.cond(label_loss_cross_entropy > 300.,lambda: 0.,lambda: 1.)
             alpha2 = tf.cond(target_loss_cross_entropy < 1e-1,lambda: 0.,lambda: 1.)
 
             return  alpha1 * target_loss_cross_entropy - alpha2 * label_loss_cross_entropy
