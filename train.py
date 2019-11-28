@@ -354,8 +354,8 @@ class Classify(op_base):
         self.data.shuffle()
 
         label = self.label_label
-        # logit = self.model.logits
-        logit = self.model()
+        logit = self.model.logits
+        # logit = self.model()
 
         # average_grads = self.average_gradients(grads_mix)
         
