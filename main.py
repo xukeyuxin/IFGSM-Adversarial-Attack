@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-dd", "--train_image_path", type=str, default="data/ISLVRC2012")
 parser.add_argument("-ic", "--image2class", type=str, default="data/image2class")
 parser.add_argument("-ci", "--classFile", type=str, default="data/class.txt")
-parser.add_argument("-sd", "--summary_dir", type=str, default="logs")
+parser.add_argument("-sd", "--summary_dir", type=str, default="logs_res")
 parser.add_argument("-pm", "--pre_model", type=str, default="model/ckpt-resnet101-mlimages-imagenet/resnet.ckpt")
 parser.add_argument("-fm", "--finetune_model", type=str, default="model/ckpt-finetune/checkpoint_0_4300.ckpt")
 parser.add_argument("-fmo", "--finetune_model_old", type=str, default="model/finetune_model_old/checkpoint_2_44800.ckpt")
@@ -23,7 +23,7 @@ parser.add_argument("-mp", "--attack_image", type=str, default="data/dev.csv")
 parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
-parser.add_argument("-mty", "--model_type", type=str, default="vgg_16")
+parser.add_argument("-mty", "--model_type", type=str, default="resnet_50") ## vgg_16 resnet_50
 
 
 # Train Iteration
@@ -36,7 +36,7 @@ parser.add_argument("-b", "--batch_size", type=int, default=16)
 parser.add_argument("-cs", "--change_size", type=int, default=4)
 parser.add_argument("-tu", "--train_utils", type=str, default='gpu')
 parser.add_argument("-l", "--lr", type=float, default=1e-3)
-parser.add_argument("-ldt", "--lr_decay_step", type=int, default=10000)
+parser.add_argument("-ldt", "--lr_decay_step", type=int, default=50000)
 parser.add_argument("-ldf", "--lr_decay_factor", type=float, default=0.1)
 parser.add_argument("-om", "--opt_momentum", type=float, default=0.9)
 parser.add_argument("-wd", "--weight_decay", type=float, default=1e-4)
@@ -55,7 +55,7 @@ args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_index
 
 
-dir_names = ['eval','logs','model','data']
+dir_names = ['eval','logs','model','data','logs_res']
 for dir in dir_names:
     if(not os.path.exists(dir)):
         os.mkdir(dir)

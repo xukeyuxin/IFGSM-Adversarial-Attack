@@ -49,7 +49,7 @@ class Classify(op_base):
             self.model = inception(self.input_images,is_training = is_training)
             self.model()
             self.save_model = 'model/inception/model'
-            self.pre_model = 'model/inception/pretrain/vgg_16.ckpt'
+            self.pre_model = 'model/inception/pretrain/inception_v4.ckpt'
             self.init_model()
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
@@ -119,8 +119,6 @@ class Classify(op_base):
         l2_regularization = self.weight_decay * tf.add_n( [ tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bn' not in v.name ] )
         l2_regularization_bn = 0.1 * self.weight_decay * tf.add_n(  [ tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bn' in v.name ]  )
         loss = loss_softmax + l2_regularization + l2_regularization_bn
-        self.summary.append(tf.summary.scalar('l2_regularization',l2_regularization))
-        self.summary.append(tf.summary.scalar('l2_regularization_bn',l2_regularization_bn))
         grads = self.optimizer.compute_gradients(loss,tf.trainable_variables())
         return grads
 
@@ -377,7 +375,7 @@ class Classify(op_base):
         self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels = label,logits = logit))
         self.summary.append(tf.summary.scalar('loss',self.loss))
         grads = self.optimizer.compute_gradients(self.loss,var_list = self.variables_to_train)
-        apply_gradient_op = self.optimizer.apply_gradients(grads)
+        apply_gradient_op = self.optimizer.apply_gradients(grads,global_step = self.global_step)
         train_op = tf.group(apply_gradient_op)
 
         for var in self.variables_to_train:
