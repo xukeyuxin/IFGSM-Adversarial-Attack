@@ -94,7 +94,7 @@ class Classify(op_base):
             self.lr_decay_factor,
             staircase=True)
         # self.optimizer = tf.train.AdamOptimizer(learning_rate=lr, momentum=self.opt_momentum)
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=lr)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
         
 
     def graph(self,logit):
@@ -380,7 +380,6 @@ class Classify(op_base):
             while True:
                 try:
                     image_content, label_content = next(data_generator)
-                    print(image_content)
                     _,summary_str,_label,_logit = self.sess.run([train_op,summary_op,label,logit],feed_dict = {self.input_images:image_content,self.label_label:label_content})
                     step += 1
                     # print(_label)
