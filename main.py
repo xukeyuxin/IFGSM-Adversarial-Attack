@@ -23,7 +23,7 @@ parser.add_argument("-mp", "--attack_image", type=str, default="data/dev.csv")
 parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
-parser.add_argument("-mty", "--model_type", type=str, default="vgg_16")
+parser.add_argument("-mty", "--model_type", type=str, default="inception")
 
 
 # Train Iteration

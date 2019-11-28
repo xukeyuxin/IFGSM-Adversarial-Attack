@@ -48,8 +48,18 @@ class Classify(op_base):
             is_training = True
             self.model = inception(self.input_images,is_training = is_training)
             self.model()
-            self.save_model = 'model/inception/model'
+            self.save_model = 'model/inception/model/inception_v4'
             self.pre_model = 'model/inception/pretrain/vgg_16.ckpt'
+            self.init_model()
+            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
+        
+        elif(self.model_type == 'inception_v3'):
+            is_training = True
+            self.model = inception(self.input_images,is_training = is_training)
+            self.model.inception_v3()
+            self.save_model = 'model/inception/model/inception_v3'
+            self.pre_model = 'model/inception/pretrain/inception_v3.ckpt'
             self.init_model()
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
@@ -377,7 +387,7 @@ class Classify(op_base):
         self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels = label,logits = logit))
         self.summary.append(tf.summary.scalar('loss',self.loss))
         grads = self.optimizer.compute_gradients(self.loss,var_list = self.variables_to_train)
-        apply_gradient_op = self.optimizer.apply_gradients(grads)
+        apply_gradient_op = self.optimizer.apply_gradients(grads,global_step = self.global_step)
         train_op = tf.group(apply_gradient_op)
 
         for var in self.variables_to_train:
