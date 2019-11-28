@@ -1,5 +1,6 @@
 import tensorflow as tf
 from model.resnet import ResNet
+from model.inception.inception import inception
 import numpy as np
 import json
 import pickle 
@@ -18,21 +19,39 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        self.input_images = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,3])
-        self.input_blur_images = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,3])
+        self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
+        self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
-        self.target_label = tf.placeholder(tf.int32,shape = [1,1000])
+        self.target_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.label_feature = tf.placeholder(tf.float32,shape = [2048])
-        self.label_label = tf.placeholder(tf.int32,shape = [1,1000])
+        self.label_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
         self.index = tf.placeholder(tf.int32,shape = [])
         self.gaussian_blur = GaussianBlur()
 
-        self.init_noise()
-        self.model = ResNet(self.input_images, is_training = False)
-        self.model()
+        attack = False
+        if(attack):
+            self.init_noise()
+
+        if(self.model_type == 'resnet_101'):
+            self.model = ResNet(self.input_images, is_training = False)
+            self.model()
+            self.save_model = 'model/resnet'
+            self.pre_model = 'model/ckpt-resnet101-mlimages-imagenet/resnet.ckpt'
+            self.init_model()
+            variables_to_restore_image = [v for v in tf.global_variables() if 'noise' not in v.name]
+            self.saver = tf.train.Saver(variables_to_restore_image,max_to_keep = 5)
+
+        elif(self.model_type == 'inception'):
+            is_training = True
+            self.model = inception(self.input_images,is_training = is_training)
+            self.model()
+            self.save_model = 'model/inception/model'
+            self.pre_model = 'model/inception/model/inception_v4.ckpt'
+            self.init_model()
+            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 5)
         
-        self.init_model(noise = True)
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
     def convert(self,input):
@@ -56,8 +75,6 @@ class Classify(op_base):
         return average_grads
 
     def init_model(self,noise = False):
-        # self.model.build_model(noise = noise)
-
         self.global_step = tf.get_variable(name='global_step', shape=[], initializer=tf.constant_initializer(0),dtype= tf.int64,
                             trainable=False)
         lr = tf.train.exponential_decay(
@@ -269,12 +286,8 @@ class Classify(op_base):
         return tf.group(update_value,update_grad)
 
     def attack(self):
-
-
         ## restore and init
         self.sess.run(tf.global_variables_initializer())
-        variables_to_restore_image = [v for v in tf.global_variables() if 'noise' not in v.name]
-        self.saver = tf.train.Saver(variables_to_restore_image,max_to_keep = 5)
         self.saver.restore(self.sess, self.pre_model)
         
         root_dir = os.path.join('data/feature')
@@ -330,19 +343,18 @@ class Classify(op_base):
         data_generator = self.data.get_fineune_generator()
         self.data.shuffle()
 
-        # with tf.variable_scope(tf.get_variable_scope()):
-        #     for i in range(self.num_gpu):
-        #         with tf.device('gpu:%s' % i):
-        #             with tf.name_scope('gpu_%s' % i) as scope:
-
-        logit = self.model(self.input_images,get_feature = False)
-        grads = self.graph(logit)
+        label = self.label_label
+        logit = self.model.logits
 
         # average_grads = self.average_gradients(grads_mix)
-        apply_gradient_op = self.optimizer.apply_gradients(grads, global_step=self.global_step)
-        batchnorm_updates_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        train_op = tf.group(apply_gradient_op, batchnorm_updates_op)
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels = label,logits = logit))
+        self.summary.append(tf.summary.scalar('loss',loss))
+        grads = self.optimizer.compute_gradients(loss,var_list = self.variables_to_train)
+        apply_gradient_op = self.optimizer.apply_gradients(grads)
+        train_op = tf.group(apply_gradient_op)
 
+        for var in self.variables_to_train:
+            print(var.op.name)
 
         ## restore and init
         self.sess.run(tf.global_variables_initializer())
@@ -361,7 +373,7 @@ class Classify(op_base):
                     step += 1
                     if(step % 10 == 0):
                         summary_writer.add_summary(summary_str,step)
-                    if(step % 500 == 0):
+                    if(step % 100 == 0):
                         self.saver.save(self.sess,os.path.join(self.save_model,'checkpoint_%s_%s.ckpt' % (i,step)))
                 except StopIteration:
                     print( 'finish epoch %s' % i )

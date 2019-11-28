@@ -23,6 +23,7 @@ parser.add_argument("-mp", "--attack_image", type=str, default="data/dev.csv")
 parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
+parser.add_argument("-mty", "--model_type", type=str, default="inception")
 
 
 # Train Iteration
@@ -68,7 +69,7 @@ if __name__ == '__main__':
 
     with tf.Session(config = config) as sess:
         model = Classify(sess,args)
-        # model.train()
+        model.train()
         # model.eval_finetune()
         # model.find_sim()
-        model.attack()
+        # model.attack()
