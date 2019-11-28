@@ -1,7 +1,7 @@
 import tensorflow as tf
 from model.resnet import ResNet
 from model.inception.inception import inception
-from model.vgg.vgg import vgg_16,vgg_19
+from model.vgg.vgg_16 import VGG16
 from model.resnet_50.resnet_50 import resnet_50
 import numpy as np
 import json
@@ -54,12 +54,12 @@ class Classify(op_base):
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
         
-        elif(self.model_type == 'vgg16'):
+        elif(self.model_type == 'vgg_16'):
             is_training = True
-            self.model = vgg_16(self.input_images,is_training = is_training)
+            self.model = VGG16(self.input_images,is_training = is_training)
             self.model()
             self.save_model = 'model/vgg/model'
-            self.pre_model = 'model/vgg/pretrain/inception_v4.ckpt'
+            self.pre_model = 'model/vgg/pretrain/vgg_16.ckpt'
             self.init_model()
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
@@ -107,8 +107,9 @@ class Classify(op_base):
             self.lr_decay_step,
             self.lr_decay_factor,
             staircase=True)
+        self.summary.append(tf.summary.scalar('lr',lr))
         # self.optimizer = tf.train.AdamOptimizer(learning_rate=lr, momentum=self.opt_momentum)
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=lr)
         
 
     def graph(self,logit):

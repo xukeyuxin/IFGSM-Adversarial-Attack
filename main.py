@@ -23,7 +23,7 @@ parser.add_argument("-mp", "--attack_image", type=str, default="data/dev.csv")
 parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
-parser.add_argument("-mty", "--model_type", type=str, default="resnet_50")
+parser.add_argument("-mty", "--model_type", type=str, default="vgg_16")
 
 
 # Train Iteration
@@ -36,7 +36,7 @@ parser.add_argument("-b", "--batch_size", type=int, default=16)
 parser.add_argument("-cs", "--change_size", type=int, default=4)
 parser.add_argument("-tu", "--train_utils", type=str, default='gpu')
 parser.add_argument("-l", "--lr", type=float, default=1e-3)
-parser.add_argument("-ldt", "--lr_decay_step", type=int, default=0)
+parser.add_argument("-ldt", "--lr_decay_step", type=int, default=10000)
 parser.add_argument("-ldf", "--lr_decay_factor", type=float, default=0.1)
 parser.add_argument("-om", "--opt_momentum", type=float, default=0.9)
 parser.add_argument("-wd", "--weight_decay", type=float, default=1e-4)
