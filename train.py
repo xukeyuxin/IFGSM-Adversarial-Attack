@@ -355,8 +355,10 @@ class Classify(op_base):
 
         label = self.label_label
         logit = self.model.logits
-
+        print(label)
+        print(logit)
         # average_grads = self.average_gradients(grads_mix)
+        
         self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels = label,logits = logit))
         self.summary.append(tf.summary.scalar('loss',self.loss))
         grads = self.optimizer.compute_gradients(self.loss,var_list = self.variables_to_train)
