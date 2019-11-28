@@ -355,8 +355,7 @@ class Classify(op_base):
 
         label = self.label_label
         logit = self.model.logits
-        print(label)
-        print(logit)
+
         # average_grads = self.average_gradients(grads_mix)
         
         self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels = label,logits = logit))
@@ -381,9 +380,10 @@ class Classify(op_base):
             while True:
                 try:
                     image_content, label_content = next(data_generator)
-                    _,summary_str,_loss = self.sess.run([train_op,summary_op,self.loss],feed_dict = {self.input_images:image_content,self.label_label:label_content})
+                    _,summary_str,_label,_logit = self.sess.run([train_op,summary_op,label,logit],feed_dict = {self.input_images:image_content,self.label_label:label_content})
                     step += 1
-                    print(_loss)
+                    print(_label)
+                    print(_logit)
                     if(step % 10 == 0):
                         summary_writer.add_summary(summary_str,step)
                     if(step % 100 == 0):
