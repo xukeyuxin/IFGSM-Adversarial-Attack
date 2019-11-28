@@ -41,6 +41,7 @@ parser.add_argument("-ldf", "--lr_decay_factor", type=float, default=0.1)
 parser.add_argument("-om", "--opt_momentum", type=float, default=0.9)
 parser.add_argument("-wd", "--weight_decay", type=float, default=1e-4)
 parser.add_argument("-ng", "--num_gpu", type=int, default=1)
+parser.add_argument("-gi", "--gpu_index", type=int, default='0')
 
 
 
@@ -51,7 +52,7 @@ parser.add_argument("-ac", "--action", type=str, default='train')
 
 
 args = parser.parse_args()
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_index
 
 
 dir_names = ['eval','logs','model','data']
@@ -60,9 +61,11 @@ for dir in dir_names:
         os.mkdir(dir)
 
 if __name__ == '__main__':
-    config = tf.ConfigProto()
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+    config = tf.ConfigProto(gpu_options=gpu_options)
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = str(0)
+
     # config.log_device_placement=False
     # config = tf.ConfigProto(allow_soft_placement=True)
     # config.gpu_options.allow_growth = True

@@ -46,8 +46,18 @@ class Classify(op_base):
             is_training = True
             self.model = inception(self.input_images,is_training = is_training)
             self.model()
-            self.save_model = 'model/inception/model'
+            self.save_model = 'model/inception/pretrain'
             self.pre_model = 'model/inception/model/inception_v4.ckpt'
+            self.init_model()
+            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 5)
+        
+        elif(self.model_type == 'vgg16'):
+            is_training = True
+            self.model = inception(self.input_images,is_training = is_training)
+            self.model()
+            self.save_model = 'model/vgg/pretrain'
+            self.pre_model = 'model/vgg/model/inception_v4.ckpt'
             self.init_model()
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 5)
@@ -347,9 +357,9 @@ class Classify(op_base):
         logit = self.model.logits
 
         # average_grads = self.average_gradients(grads_mix)
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels = label,logits = logit))
-        self.summary.append(tf.summary.scalar('loss',loss))
-        grads = self.optimizer.compute_gradients(loss,var_list = self.variables_to_train)
+        self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels = label,logits = logit))
+        self.summary.append(tf.summary.scalar('loss',self.loss))
+        grads = self.optimizer.compute_gradients(self.loss,var_list = self.variables_to_train)
         apply_gradient_op = self.optimizer.apply_gradients(grads)
         train_op = tf.group(apply_gradient_op)
 
@@ -369,8 +379,9 @@ class Classify(op_base):
             while True:
                 try:
                     image_content, label_content = next(data_generator)
-                    _,summary_str = self.sess.run([train_op,summary_op],feed_dict = {self.input_images:image_content,self.label_label:label_content})
+                    _,summary_str,_loss = self.sess.run([train_op,summary_op,self.loss],feed_dict = {self.input_images:image_content,self.label_label:label_content})
                     step += 1
+                    print(_loss)
                     if(step % 10 == 0):
                         summary_writer.add_summary(summary_str,step)
                     if(step % 100 == 0):
