@@ -369,7 +369,7 @@ class Classify(op_base):
             while True:
                 try:
                     image_content, label_content = next(data_generator)
-                    _,summary_str = self.sess.run([train_op,summary_op],feed_dict = {self.input_images:image_content,self.input_label:label_content})
+                    _,summary_str = self.sess.run([train_op,summary_op],feed_dict = {self.input_images:image_content,self.label_label:label_content})
                     step += 1
                     if(step % 10 == 0):
                         summary_writer.add_summary(summary_str,step)
