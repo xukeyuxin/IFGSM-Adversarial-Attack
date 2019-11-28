@@ -354,8 +354,8 @@ class Classify(op_base):
         self.data.shuffle()
 
         label = self.label_label
-        logit = self.model.logits
-        # logit = self.model()
+        # logit = self.model.logits
+        logit = self.model()
 
         # average_grads = self.average_gradients(grads_mix)
         
@@ -383,7 +383,6 @@ class Classify(op_base):
                     image_content, label_content = next(data_generator)
                     _,summary_str,_label,_logit = self.sess.run([train_op,summary_op,label,logit],feed_dict = {self.input_images:image_content,self.label_label:label_content})
                     step += 1
-                    print(_logit)
                     if(step % 10 == 0):
                         summary_writer.add_summary(summary_str,step)
                     if(step % 100 == 0):
