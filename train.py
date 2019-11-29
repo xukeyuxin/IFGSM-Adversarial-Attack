@@ -67,7 +67,8 @@ class Classify(op_base):
             self.pre_model = 'model/inception/pretrain/inception_v3.ckpt'
             self.init_model()
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
+            self.saver = tf.train.Saver(self.variables_to_restore)
+            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
         
         elif(self.model_type == 'vgg_16'):
             self.model = VGG16(self.input_images,is_training = is_training)
@@ -76,17 +77,23 @@ class Classify(op_base):
             self.pre_model = 'model/vgg/pretrain/vgg_16.ckpt'
             self.init_model()
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
+            self.saver = tf.train.Saver(self.variables_to_restore)
+            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+
         elif(self.model_type == 'resnet_50'):
             self.model = resnet_50(self.input_images,is_training = is_training)
             self.model()
             self.save_model = 'model/resnet_50/model'
-            self.pre_model = 'model/resnet_50/pretrain/resnet_v2_50.ckpt'
+            if(is_training):
+                self.pre_model = 'model/resnet_50/pretrain/resnet_v2_50.ckpt'   
+            else:
+                self.pre_model = 'model/resnet_50/model/resnet_50.ckpt'
             self.init_model()
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)     
+            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)   
+            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)  
         
-        print(self.variables_to_restore)
+
         print('finish load %s' % self.model_type)
         
         self.attack_generator = self.data.load_attack_image()
