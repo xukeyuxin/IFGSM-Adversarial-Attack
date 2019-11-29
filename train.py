@@ -134,7 +134,16 @@ class Classify(op_base):
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
     def get_restore_var(self,exclusion):
-        return [ var for var in tf.trainable_variables() if var.op.name.startswith(exclusion) ]
+        if( isinstance(exclusion,str)):
+            return [ var for var in tf.trainable_variables() if var.op.name.startswith(exclusion) ]
+        elif(isinstance(exclusion,list)):
+            var_list = []
+            for var in tf.trainable_variables():
+                for item_exclusion in exclusion:
+                    if(var.op.name.startswith(item_exclusion)):
+                        var_list.append(var)
+            return var_list
+
     def build_all_graph(self,input):
         
         for item in self.model_list:
@@ -160,13 +169,13 @@ class Classify(op_base):
                 self.resnet_50_model = resnet(input,is_training = False)
                 self.resnet_50_model.resnet_50()
                 self.resnet_50_pre_model = 'model/resnet/model/resnet_50/resnet_50.ckpt'
-                variables_to_restore = self.get_restore_var('resnet_50')
+                variables_to_restore = self.get_restore_var(['resnet_v2_50','resnet_50'])
                 self.resnet_50_saver = tf.train.Saver(variables_to_restore)            
             elif(item == 'resnet_101'):
                 self.resnet_101_model = resnet(input,is_training = False)
                 self.resnet_101_model.resnet_101()
                 self.resnet_101_pre_model = 'model/resnet/model/resnet_101/resnet_101.ckpt'
-                variables_to_restore = self.get_restore_var('resnet_101')
+                variables_to_restore = self.get_restore_var(['resnet_v2_101','resnet_101'])
                 self.resnet_101_saver = tf.train.Saver(variables_to_restore)  
 
             # elif(item == 'resnet_152'):

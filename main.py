@@ -24,7 +24,7 @@ parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
 
-parser.add_argument("-mty", "--model_type", type=str, default="inception_v4") ## vgg_16 resnet_50 resnet_101
+parser.add_argument("-mty", "--model_type", type=str, default="resnet_101") ## vgg_16 resnet_50 resnet_101
 
 # Train Iteration
 parser.add_argument("-iw", "--image_weight", type=int, default=299)
