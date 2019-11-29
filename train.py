@@ -52,12 +52,13 @@ class Classify(op_base):
             if(is_training):
                 self.pre_model = 'model/inception/pretrain/inception_v4.ckpt'     
             else:
-                self.pre_model = 'model/inception/model/inception_v4/checkpoint_1_152600.ckpt'
-                
+                self.pre_model = 'model/inception/model/inception_v4/inception_v4.ckpt'
+
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.init_model()
             
-            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
+            self.saver = tf.train.Saver(self.variables_to_restore)
+            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
         
         elif(self.model_type == 'inception_v3'):
             self.model = inception(self.input_images,is_training = is_training)
@@ -397,8 +398,6 @@ class Classify(op_base):
         self.sess.run(tf.global_variables_initializer())
         self.saver.restore(self.sess, self.pre_model)
 
-        self.new_saver = tf.train.Saver(tf.trainable_variables(),max_to_keep = 1)
-
         summary_writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
         summary_op = tf.summary.merge(self.summary)
 
@@ -413,7 +412,7 @@ class Classify(op_base):
                     if(step % 10 == 0):
                         summary_writer.add_summary(summary_str,step)
                     if(step % 100 == 0):
-                        self.new_saver.save(self.sess,os.path.join(self.save_model,'%s.ckpt' % (self.model_type)))
+                        self.saver_store.save(self.sess,os.path.join(self.save_model,'%s.ckpt' % (self.model_type)))
                 except StopIteration:
                     print( 'finish epoch %s' % i )
                     data_generator = self.data.get_fineune_generator()
