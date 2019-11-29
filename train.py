@@ -69,7 +69,17 @@ class Classify(op_base):
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore)
             self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
-        
+
+        elif(self.model_type == 'inception_res'):
+            self.model = inception(self.input_images,is_training = is_training)
+            self.model.inception_res()
+            self.save_model = 'model/inception/model/inception_res'
+            self.pre_model = 'model/inception/pretrain/inception_resnet_v2.ckpt'
+            self.init_model()
+            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+            self.saver = tf.train.Saver(self.variables_to_restore)
+            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+         
         elif(self.model_type == 'vgg_16'):
             self.model = VGG16(self.input_images,is_training = is_training)
             self.model()
