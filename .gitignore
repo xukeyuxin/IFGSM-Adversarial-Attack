@@ -1,5 +1,12 @@
 data
-model
+model/ckpt-resnet101-mlimages-imagenet
+model/inception/model
+model/inception/pretrain
+model/resnet_50/model
+model/resnet_50/pretrain
+model/vgg/model
+model/vgg/pretrain
+model/alexnet
 eval
 logs
 logs_res
