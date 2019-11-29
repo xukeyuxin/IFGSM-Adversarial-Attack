@@ -31,83 +31,130 @@ class Classify(op_base):
         self.index = tf.placeholder(tf.int32,shape = [])
         self.gaussian_blur = GaussianBlur()
 
-        attack = False
+        attack = True if self.action == 'attack' else False
         is_training = True if self.action == 'train' else False
         if(attack):
             self.init_noise()
+            self.load_both_model()
+        else:
+            if(self.model_type == 'resnet_101'):
+                self.model = ResNet(self.input_images, is_training = False)
+                self.model()
+                self.save_model = 'model/resnet'
+                self.pre_model = 'model/ckpt-resnet101-mlimages-imagenet/resnet.ckpt'
+                self.init_model()
+                variables_to_restore_image = [v for v in tf.global_variables() if 'noise' not in v.name]
+                self.saver = tf.train.Saver(variables_to_restore_image,max_to_keep = 1)
 
-        if(self.model_type == 'resnet_101'):
-            self.model = ResNet(self.input_images, is_training = False)
-            self.model()
-            self.save_model = 'model/resnet'
-            self.pre_model = 'model/ckpt-resnet101-mlimages-imagenet/resnet.ckpt'
-            self.init_model()
-            variables_to_restore_image = [v for v in tf.global_variables() if 'noise' not in v.name]
-            self.saver = tf.train.Saver(variables_to_restore_image,max_to_keep = 1)
+            elif(self.model_type == 'inception_v4'):
+                self.model = inception(self.input_images,is_training = is_training)
+                self.model()
+                self.save_model = 'model/inception/model/inception_v4'
+                if(is_training):
+                    self.pre_model = 'model/inception/pretrain/inception_v4.ckpt'     
+                else:
+                    self.pre_model = 'model/inception/model/inception_v4/inception_v4.ckpt'
 
-        elif(self.model_type == 'inception_v4'):
-            self.model = inception(self.input_images,is_training = is_training)
-            self.model()
-            self.save_model = 'model/inception/model/inception_v4'
-            if(is_training):
-                self.pre_model = 'model/inception/pretrain/inception_v4.ckpt'     
-            else:
-                self.pre_model = 'model/inception/model/inception_v4/inception_v4.ckpt'
-
-            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.init_model()
+                self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+                self.init_model()
+                
+                self.saver = tf.train.Saver(self.variables_to_restore)
+                self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
             
-            self.saver = tf.train.Saver(self.variables_to_restore)
-            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
-        
-        elif(self.model_type == 'inception_v3'):
-            self.model = inception(self.input_images,is_training = is_training)
-            self.model.inception_v3()
-            self.save_model = 'model/inception/model/inception_v3'
-            self.pre_model = 'model/inception/pretrain/inception_v3.ckpt'
-            self.init_model()
-            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.saver = tf.train.Saver(self.variables_to_restore)
-            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+            elif(self.model_type == 'inception_v3'):
+                self.model = inception(self.input_images,is_training = is_training)
+                self.model.inception_v3()
+                self.save_model = 'model/inception/model/inception_v3'
+                if(is_training):
+                    self.pre_model = 'model/inception/pretrain/inception_v3.ckpt'     
+                else:
+                    self.pre_model = 'model/inception/model/inception_v3/inception_v3.ckpt'
 
-        elif(self.model_type == 'inception_res'):
-            self.model = inception(self.input_images,is_training = is_training)
-            self.model.inception_res()
-            self.save_model = 'model/inception/model/inception_res'
-            self.pre_model = 'model/inception/pretrain/inception_resnet_v2.ckpt'
-            self.init_model()
-            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.saver = tf.train.Saver(self.variables_to_restore)
-            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
-         
-        elif(self.model_type == 'vgg_16'):
-            self.model = VGG16(self.input_images,is_training = is_training)
-            self.model()
-            self.save_model = 'model/vgg/model'
-            self.pre_model = 'model/vgg/pretrain/vgg_16.ckpt'
-            self.init_model()
-            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.saver = tf.train.Saver(self.variables_to_restore)
-            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+                
+                self.init_model()
+                self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+                self.saver = tf.train.Saver(self.variables_to_restore)
+                self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
 
-        elif(self.model_type == 'resnet_50'):
-            self.model = resnet_50(self.input_images,is_training = is_training)
-            self.model()
-            self.save_model = 'model/resnet_50/model'
-            if(is_training):
-                self.pre_model = 'model/resnet_50/pretrain/resnet_v2_50.ckpt'   
-            else:
-                self.pre_model = 'model/resnet_50/model/resnet_50.ckpt'
-            self.init_model()
-            self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-            self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)   
-            self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)  
-        
+            elif(self.model_type == 'inception_res'):
+                self.model = inception(self.input_images,is_training = is_training)
+                self.model.inception_res()
+                self.save_model = 'model/inception/model/inception_res'
+                self.pre_model = 'model/inception/pretrain/inception_resnet_v2.ckpt'
+                self.init_model()
+                self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+                self.saver = tf.train.Saver(self.variables_to_restore)
+                self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+            
+            elif(self.model_type == 'vgg_16'):
+                self.model = VGG16(self.input_images,is_training = is_training)
+                self.model()
+                self.save_model = 'model/vgg/model'
+                self.pre_model = 'model/vgg/pretrain/vgg_16.ckpt'
+                self.init_model()
+                self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+                self.saver = tf.train.Saver(self.variables_to_restore)
+                self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+
+            elif(self.model_type == 'resnet_50'):
+                self.model = resnet_50(self.input_images,is_training = is_training)
+                self.model()
+                self.save_model = 'model/resnet_50/model'
+                if(is_training):
+                    self.pre_model = 'model/resnet_50/pretrain/resnet_v2_50.ckpt'   
+                else:
+                    self.pre_model = 'model/resnet_50/model/resnet_50.ckpt'
+                self.init_model()
+                self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+                self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)   
+                self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)  
+            
 
         print('finish load %s' % self.model_type)
         
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
+
+    def load_both_model(self):
+        model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152']
+        for item in model_list:
+            if(item == 'inception_v4'):
+                self.inception_v4_model = inception(self.input_images,is_training = False)
+                self.inception_v4_model()
+                self.inception_v4_pre_model = 'model/inception/model/inception_v4.ckpt'
+                variables_to_restore, variables_to_train = self.inception_v4_model.get_train_restore_vars()
+                print(variables_to_restore)
+                self.inception_v4_saver = tf.train.Saver(variables_to_restore)
+            elif(item == 'inception_v3'):
+                self.inception_v3_model = inception(self.input_images,is_training = False)
+                self.inception_v3_model.inception_v3()
+                self.inception_v3_pre_model = 'model/inception/model/inception_v3.ckpt'
+                variables_to_restore, variables_to_train = self.inception_v3_model.get_train_restore_vars()
+                print(variables_to_restore)
+                self.inception_v3_saver = tf.train.Saver(variables_to_restore)
+            # elif(item == 'inception_res'):
+            #     self.inception_res_model = inception(self.input_images,is_training = False)
+            #     self.inception_res_model.inception_res()
+            #     self.inception_res_pre_model = 'model/inception/model/inception_resnet_v2.ckpt'
+            #     variables_to_restore, variables_to_train = self.inception_res_model.get_train_restore_vars()
+            #     print(variables_to_restore)
+            #     self.inception_res_saver = tf.train.Saver(variables_to_restore)
+            elif(item == 'resnet_50'):
+                self.resnet_50_model = resnet_50(self.input_images,is_training = False)
+                self.resnet_50_model()
+                self.resnet_50_pre_model = 'model/resnet_50/model/resnet_50.ckpt'
+                variables_to_restore, variables_to_train = self.resnet_50_model.get_train_restore_vars()
+                print(variables_to_restore)
+                self.resnet_50_saver = tf.train.Saver(variables_to_restore)  
+            
+            # elif(item == 'resnet_101'):
+            #     self.resnet_101 = ResNet(self.input_images, is_training = False)
+            #     self.resnet_101()
+            #     self.pre_model = 'model/ckpt-resnet101-mlimages-imagenet/resnet.ckpt'
+            #     variables_to_restore_image = [v for v in tf.global_variables() if 'noise' not in v.name]
+            #     self.resnet_101_saver = tf.train.Saver(variables_to_restore_image,max_to_keep = 1)
+
+
     def convert(self,input):
         return tf.convert_to_tensor(input)
     

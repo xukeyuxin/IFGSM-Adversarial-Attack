@@ -24,7 +24,7 @@ parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
 
-parser.add_argument("-mty", "--model_type", type=str, default="inception_res") ## vgg_16 resnet_50
+parser.add_argument("-mty", "--model_type", type=str, default="inception_v4") ## vgg_16 resnet_50 resnet_101
 
 # Train Iteration
 parser.add_argument("-iw", "--image_weight", type=int, default=299)
@@ -76,6 +76,8 @@ if __name__ == '__main__':
             model.train()
         elif(args.action == 'eval'):
             model.eval()
+        elif(args.action == 'attack'):
+            model.attack()
         # model.eval_finetune()
         # model.find_sim()
         # model.attack()
