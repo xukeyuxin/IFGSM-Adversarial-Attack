@@ -127,7 +127,7 @@ class Classify(op_base):
                 self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)  
  
 
-        print('finish load %s' % self.model_type)
+            print('finish load %s' % self.model_type)
         
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
@@ -154,18 +154,19 @@ class Classify(op_base):
             #     self.inception_res_pre_model = 'model/inception/model/inception_resnet_v2.ckpt'
             #     variables_to_restore, variables_to_train = self.inception_res_model.get_train_restore_vars()
             #     self.inception_res_saver = tf.train.Saver(variables_to_restore)
-            # elif(item == 'resnet_50'):
-            #     self.resnet_50_model = resnet(input,is_training = False)
-            #     self.resnet_50_model.resnet_50()
-            #     self.resnet_50_pre_model = 'model/resnet_50/model/resnet_50.ckpt'
-            #     variables_to_restore, variables_to_train = self.resnet_50_model.get_train_restore_vars()
-            #     self.resnet_50_saver = tf.train.Saver(variables_to_restore)            
-            # elif(item == 'resnet_101'):
-            #     self.resnet_101 = ResNet(input, is_training = False)
-            #     self.resnet_101()
-            #     self.pre_model = 'model/resnet_101/model/resnet_101.ckpt'
-            #     variables_to_restore, variables_to_train = self.resnet_101_model.get_train_restore_vars()
-            #     self.resnet_101_saver = tf.train.Saver(variables_to_restore)   
+            elif(item == 'resnet_50'):
+                self.resnet_50_model = resnet(input,is_training = False)
+                self.resnet_50_model.resnet_50()
+                self.resnet_50_pre_model = 'model/resnet/model/resnet_50/resnet_50.ckpt'
+                variables_to_restore = self.get_restore_var('resnet_50')
+                self.resnet_50_saver = tf.train.Saver(variables_to_restore)            
+            elif(item == 'resnet_101'):
+                self.resnet_101_model = resnet(input,is_training = False)
+                self.resnet_101_model.resnet_101()
+                self.resnet_101_pre_model = 'model/resnet/model/resnet_101/resnet_101.ckpt'
+                variables_to_restore = self.get_restore_var('resnet_101')
+                self.resnet_101_saver = tf.train.Saver(variables_to_restore)  
+
             # elif(item == 'resnet_152'):
             #     self.resnet_152 = ResNet(input, is_training = False)
             #     self.resnet_152()
@@ -177,6 +178,8 @@ class Classify(op_base):
         self.sess.run(tf.global_variables_initializer())
         self.inception_v4_saver.restore(self.sess,self.inception_v4_pre_model)
         self.inception_v3_saver.restore(self.sess,self.inception_v3_pre_model)
+        self.resnet_50_saver.restore(self.sess,self.resnet_50_pre_model)
+        self.resnet_101_saver.restore(self.sess,self.resnet_101_pre_model)
         print('restore finish')
 
     def convert(self,input):
@@ -365,7 +368,21 @@ class Classify(op_base):
         label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
         loss_inception_v3 = target_cross_entropy_inception_v3 - label_cross_entropy_inception_v3
 
-        loss_total = alpha1 * loss_inception_v4 + alpha2 * loss_inception_v3
+        ## resnet_50
+        alpha3 = 1
+        logits_resnet_50 = self.resnet_50_model.logits
+        target_cross_entropy_resnet_50= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_50)) 
+        label_cross_entropy_resnet_50 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_50)) 
+        loss_resnet_50 = target_cross_entropy_resnet_50 - label_cross_entropy_resnet_50
+
+        ## resnet_101
+        alpha4 = 1
+        logits_resnet_101 = self.resnet_101_model.logits
+        target_cross_entropy_resnet_101= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_101)) 
+        label_cross_entropy_resnet_101 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_101)) 
+        loss_resnet_101 = target_cross_entropy_resnet_101 - label_cross_entropy_resnet_101
+
+        loss_total = alpha1 * loss_inception_v4 + alpha2 * loss_inception_v3 + alpha3 * loss_resnet_50 + alpha4 * loss_resnet_101
 
         #### logits
         # logits_base = self.model(self.combine_images)
