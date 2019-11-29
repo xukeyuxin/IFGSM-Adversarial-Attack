@@ -32,6 +32,7 @@ class Classify(op_base):
         self.gaussian_blur = GaussianBlur()
 
         attack = False
+        is_training = True if self.action == 'train' else False
         if(attack):
             self.init_noise()
 
@@ -44,18 +45,21 @@ class Classify(op_base):
             variables_to_restore_image = [v for v in tf.global_variables() if 'noise' not in v.name]
             self.saver = tf.train.Saver(variables_to_restore_image,max_to_keep = 1)
 
-        elif(self.model_type == 'inception'):
-            is_training = True
+        elif(self.model_type == 'inception_v4'):
             self.model = inception(self.input_images,is_training = is_training)
             self.model()
             self.save_model = 'model/inception/model/inception_v4'
-            self.pre_model = 'model/inception/pretrain/vgg_16.ckpt'
-            self.init_model()
+            if(is_training):
+                self.pre_model = 'model/inception/pretrain/inception_v4.ckpt'     
+            else:
+                self.pre_model = 'model/inception/model/inception_v4/checkpoint_1_152600.ckpt'
+                
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
+            self.init_model()
+            
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
         
         elif(self.model_type == 'inception_v3'):
-            is_training = True
             self.model = inception(self.input_images,is_training = is_training)
             self.model.inception_v3()
             self.save_model = 'model/inception/model/inception_v3'
@@ -65,7 +69,6 @@ class Classify(op_base):
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
         
         elif(self.model_type == 'vgg_16'):
-            is_training = True
             self.model = VGG16(self.input_images,is_training = is_training)
             self.model()
             self.save_model = 'model/vgg/model'
@@ -74,8 +77,6 @@ class Classify(op_base):
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)
         elif(self.model_type == 'resnet_50'):
-            
-            is_training = True
             self.model = resnet_50(self.input_images,is_training = is_training)
             self.model()
             self.save_model = 'model/resnet_50/model'
@@ -84,6 +85,7 @@ class Classify(op_base):
             self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
             self.saver = tf.train.Saver(self.variables_to_restore,max_to_keep = 1)     
         
+        print(self.variables_to_restore)
         print('finish load %s' % self.model_type)
         
         self.attack_generator = self.data.load_attack_image()
@@ -129,8 +131,6 @@ class Classify(op_base):
         l2_regularization = self.weight_decay * tf.add_n( [ tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bn' not in v.name ] )
         l2_regularization_bn = 0.1 * self.weight_decay * tf.add_n(  [ tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bn' in v.name ]  )
         loss = loss_softmax + l2_regularization + l2_regularization_bn
-        self.summary.append(tf.summary.scalar('l2_regularization',l2_regularization))
-        self.summary.append(tf.summary.scalar('l2_regularization_bn',l2_regularization_bn))
         grads = self.optimizer.compute_gradients(loss,tf.trainable_variables())
         return grads
 
@@ -397,6 +397,8 @@ class Classify(op_base):
         self.sess.run(tf.global_variables_initializer())
         self.saver.restore(self.sess, self.pre_model)
 
+        self.new_saver = tf.train.Saver(tf.trainable_variables(),max_to_keep = 1)
+
         summary_writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
         summary_op = tf.summary.merge(self.summary)
 
@@ -411,13 +413,30 @@ class Classify(op_base):
                     if(step % 10 == 0):
                         summary_writer.add_summary(summary_str,step)
                     if(step % 100 == 0):
-                        self.saver.save(self.sess,os.path.join(self.save_model,'checkpoint_%s_%s.ckpt' % (i,step)))
+                        self.new_saver.save(self.sess,os.path.join(self.save_model,'%s.ckpt' % (self.model_type)))
                 except StopIteration:
                     print( 'finish epoch %s' % i )
                     data_generator = self.data.get_fineune_generator()
                     self.data.shuffle()
                     break  
 
+    def eval(self):
+        self.sess.run(tf.global_variables_initializer())
+        self.saver.restore(self.sess, self.pre_model)
+
+        logit = self.model.logits
+        softmax = tf.nn.softmax(logit)
+        while True:
+            _p,content,label,target = next(self.attack_generator)
+            image_content = np.expand_dims(content,0)
+            _softmax = self.sess.run(softmax,feed_dict = {self.input_images:image_content})
+            print(_p)
+            print(np.argsort(np.squeeze(_softmax))[-10:])
+            return 
+
+
+
+        
 
 
 

@@ -82,14 +82,14 @@ class data(object):
         image_list = os.listdir(dirName)
         index = 0
         for item in image_list:
-            image_content = self.preprocess(self.rbg2float(cv2.imread(os.path.join(dirName,item))))
+            image_content = self.rbg2float(cv2.imread(os.path.join(dirName,item)))
             yield image_content, item
     
     def load_attack_image(self):
         with open(self.attack_image,'r') as f:
             reader = csv.reader(f)
             for im_p,label,target in reader:
-                image_content = self.preprocess(self.rbg2float(cv2.imread(os.path.join(self.attack_content,im_p))))
+                image_content = self.rbg2float(cv2.imread(os.path.join(self.attack_content,im_p)))
                 yield im_p,image_content,label,target
 
 
