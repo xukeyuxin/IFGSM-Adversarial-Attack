@@ -11,7 +11,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from model.resnet_50 import resnet_utils 
+from model.resnet import resnet_utils 
 
 slim = tf.contrib.slim
 resnet_arg_scope = resnet_utils.resnet_arg_scope

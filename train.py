@@ -1,5 +1,4 @@
 import tensorflow as tf
-from model.resnet import ResNet
 from model.inception.inception import inception
 from model.vgg.vgg_16 import VGG16
 from model.resnet.resnet import resnet
@@ -35,7 +34,7 @@ class Classify(op_base):
         is_training = True if self.action == 'train' else False
         if(attack):
             self.init_noise()
-            self.load_both_model()
+            # self.load_both_model()
         else:
 
             if(self.model_type == 'inception_v4'):
@@ -132,46 +131,53 @@ class Classify(op_base):
         
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
-
-    def load_both_model(self):
+    def get_restore_var(self,exclusion):
+        return [ var for var in tf.trainable_variables() if var.op.name.startswith(exclusion) ]
+    def build_all_graph(self,input):
         model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152']
         for item in model_list:
             if(item == 'inception_v4'):
-                self.inception_v4_model = inception(self.input_images,is_training = False)
+                self.inception_v4_model = inception(input,is_training = False)
                 self.inception_v4_model.inception_v4()
-                self.inception_v4_pre_model = 'model/inception/model/inception_v4.ckpt'
-                variables_to_restore, variables_to_train = self.inception_v4_model.get_train_restore_vars()
+                self.inception_v4_pre_model = 'model/inception/model/inception_v4/inception_v4.ckpt'
+                variables_to_restore = self.get_restore_var('InceptionV4')
                 self.inception_v4_saver = tf.train.Saver(variables_to_restore)
             elif(item == 'inception_v3'):
-                self.inception_v3_model = inception(self.input_images,is_training = False)
+                self.inception_v3_model = inception(input,is_training = False)
                 self.inception_v3_model.inception_v3()
-                self.inception_v3_pre_model = 'model/inception/model/inception_v3.ckpt'
-                variables_to_restore, variables_to_train = self.inception_v3_model.get_train_restore_vars()
+                self.inception_v3_pre_model = 'model/inception/model/inception_v3/inception_v3.ckpt'
+                variables_to_restore = self.get_restore_var('InceptionV3')
                 self.inception_v3_saver = tf.train.Saver(variables_to_restore)
-            elif(item == 'inception_res'):
-                self.inception_res_model = inception(self.input_images,is_training = False)
-                self.inception_res_model.inception_res()
-                self.inception_res_pre_model = 'model/inception/model/inception_resnet_v2.ckpt'
-                variables_to_restore, variables_to_train = self.inception_res_model.get_train_restore_vars()
-                self.inception_res_saver = tf.train.Saver(variables_to_restore)
-            elif(item == 'resnet_50'):
-                self.resnet_50_model = resnet(self.input_images,is_training = False)
-                self.resnet_50_model.resnet_50()
-                self.resnet_50_pre_model = 'model/resnet_50/model/resnet_50.ckpt'
-                variables_to_restore, variables_to_train = self.resnet_50_model.get_train_restore_vars()
-                self.resnet_50_saver = tf.train.Saver(variables_to_restore)            
-            elif(item == 'resnet_101'):
-                self.resnet_101 = ResNet(self.input_images, is_training = False)
-                self.resnet_101()
-                self.pre_model = 'model/resnet_101/model/resnet_101.ckpt'
-                variables_to_restore, variables_to_train = self.resnet_101_model.get_train_restore_vars()
-                self.resnet_101_saver = tf.train.Saver(variables_to_restore)   
-            elif(item == 'resnet_152'):
-                self.resnet_152 = ResNet(self.input_images, is_training = False)
-                self.resnet_152()
-                self.pre_model = 'model/resnet_152/model/resnet_152.ckpt'
-                variables_to_restore, variables_to_train = self.resnet_152_model.get_train_restore_vars()
-                self.resnet_152_saver = tf.train.Saver(variables_to_restore)   
+            # elif(item == 'inception_res'):
+            #     self.inception_res_model = inception(input,is_training = False)
+            #     self.inception_res_model.inception_res()
+            #     self.inception_res_pre_model = 'model/inception/model/inception_resnet_v2.ckpt'
+            #     variables_to_restore, variables_to_train = self.inception_res_model.get_train_restore_vars()
+            #     self.inception_res_saver = tf.train.Saver(variables_to_restore)
+            # elif(item == 'resnet_50'):
+            #     self.resnet_50_model = resnet(input,is_training = False)
+            #     self.resnet_50_model.resnet_50()
+            #     self.resnet_50_pre_model = 'model/resnet_50/model/resnet_50.ckpt'
+            #     variables_to_restore, variables_to_train = self.resnet_50_model.get_train_restore_vars()
+            #     self.resnet_50_saver = tf.train.Saver(variables_to_restore)            
+            # elif(item == 'resnet_101'):
+            #     self.resnet_101 = ResNet(input, is_training = False)
+            #     self.resnet_101()
+            #     self.pre_model = 'model/resnet_101/model/resnet_101.ckpt'
+            #     variables_to_restore, variables_to_train = self.resnet_101_model.get_train_restore_vars()
+            #     self.resnet_101_saver = tf.train.Saver(variables_to_restore)   
+            # elif(item == 'resnet_152'):
+            #     self.resnet_152 = ResNet(input, is_training = False)
+            #     self.resnet_152()
+            #     self.pre_model = 'model/resnet_152/model/resnet_152.ckpt'
+            #     variables_to_restore, variables_to_train = self.resnet_152_model.get_train_restore_vars()
+            #     self.resnet_152_saver = tf.train.Saver(variables_to_restore)   
+
+    def init_all_var(self):
+        self.sess.run(tf.global_variables_initializer())
+        self.inception_v4_saver.restore(self.sess,self.inception_v4_pre_model)
+        self.inception_v3_saver.restore(self.sess,self.inception_v3_pre_model)
+        print('restore finish')
 
     def convert(self,input):
         return tf.convert_to_tensor(input)
@@ -291,17 +297,17 @@ class Classify(op_base):
         return tf.assign(self.noise,new_noise)
 
     def make_feed_dict(self,input_image,target_label,label_label,mask,index):
-        input_blur_images =  np.expand_dims(cv2.resize(cv2.resize(np.squeeze(input_image),(224,224)),(299,299)),0)
-        return {self.input_images:input_image,self.input_blur_images:input_blur_images,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index} 
+        # input_blur_images =  np.expand_dims(cv2.resize(cv2.resize(np.squeeze(input_image),(224,224)),(299,299)),0)
+        # return {self.input_images:input_image,self.input_blur_images:input_blur_images,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index} 
         # return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
-       
+        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index}
     def init_noise(self):
         ## init
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
         grad_init = 0.
         self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
         self.v1_grad = tf.get_variable('noise_grad',shape = [1,299,299,3],initializer= tf.constant_initializer(grad_init))
-    
+
     def tf_preprocess(self,img,lar_size,out_size):
         rawH = self.image_height
         rawW = self.image_weight
@@ -325,25 +331,41 @@ class Classify(op_base):
             alpha2 = tf.cond(target_loss_cross_entropy < 1,lambda: 0.,lambda: 1.)
 
             return  alpha2 * target_loss_cross_entropy - alpha1 * label_loss_cross_entropy
-        
-        def random_loss(combine_image):
-            logit = self.model(combine_image)
-            loss = entropy_loss(logit)
-            return loss
 
+        ### random loss
+        # random_list = [self.combine_images_320_299,self.combine_images,self.combine_images_blur_320_299,self.combine_images_blur]
+        # def random_loss(combine_image):
+        #     logit = self.model(combine_image)
+        #     loss = entropy_loss(logit)
+        #     return loss
+        # random_choise = tf.random_uniform([],0,4,dtype = tf.int32)
+        # image_choose = tf.gather(random_list,random_choise)
+        # loss_total = random_loss(image_choose)
+        # self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
+        # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
+        # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
+
+        ### softmax loss
         tmp_noise = self.pre_noise(self.mask)
-        self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
         self.combine_images = tf.clip_by_value(self.input_images + tmp_noise,-1.,1.)
-        self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
-        self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
+        self.build_all_graph(self.combine_images)
+        self.init_all_var()
 
-        random_list = [self.combine_images_320_299,self.combine_images,self.combine_images_blur_320_299,self.combine_images_blur]
+        ## inception4
+        alpha1 = 1
+        logits_inception_v4 = self.inception_v4_model.logits
+        target_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v4)) 
+        label_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v4)) 
+        loss_inception_v4 = target_cross_entropy_inception_v4 - label_cross_entropy_inception_v4
 
-        ### 调参
+        ## inception3
+        alpha2 = 1
+        logits_inception_v3 = self.inception_v3_model.logits
+        target_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v3)) 
+        label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
+        loss_inception_v3 = target_cross_entropy_inception_v3 - label_cross_entropy_inception_v3
 
-        random_choise = tf.random_uniform([],0,4,dtype = tf.int32)
-        image_choose = tf.gather(random_list,random_choise)
-        loss_total = random_loss(image_choose)
+        loss_total = alpha1 * loss_inception_v4 + alpha2 * loss_inception_v3
 
         #### logits
         # logits_base = self.model(self.combine_images)
@@ -366,7 +388,6 @@ class Classify(op_base):
         # alpha2 = tf.cast(tf.cond(loss_feat_2 > 0.7,lambda: 0.1,lambda: 5.), tf.float32)
         # loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
 
-        # feat_grad = tf.gradients(ys = loss_feat,xs = self.noise)[0] ## (299,299,3)
         feat_grad = tf.gradients(ys = loss_total,xs = self.tmp_noise)[0] ## (299,299,3)
 
         loss1_grad = feat_grad * (1 - momentum) + self.v1_grad * momentum
@@ -405,9 +426,10 @@ class Classify(op_base):
 
     def attack(self):
         ## restore and init
-        self.sess.run(tf.global_variables_initializer())
-        self.saver.restore(self.sess, self.pre_model)
-        
+        # self.sess.run(tf.global_variables_initializer())
+        # self.saver.restore(self.sess, self.pre_model)
+
+        train_op = self.attack_graph()
         root_dir = os.path.join('data/feature')
         attack_tasks = os.listdir(root_dir)
         for item_index in attack_tasks:
@@ -420,7 +442,7 @@ class Classify(op_base):
             _target = '500'
             target_np = np.array([int(_target)])
 
-            train_op = self.attack_graph()
+            
 
             with open(os.path.join(root_dir,item_index,'single_label.pickle'),'rb') as f_single, open(os.path.join(root_dir,item_index,'target_best_feature.pickle'),'rb') as f_t:
 
@@ -439,14 +461,13 @@ class Classify(op_base):
 
                     if(i % 100 == 0):
                         
-                        _, write_image,target_loss,label_loss, _total_loss,_weight = self.sess.run([train_op,self.combine_images,
-                        self.target_loss,
-                        self.label_loss,
-                        self.total_loss,
-                        self.loss_weight],feed_dict = feed_dict)
+                        _, write_image, _total_loss,_weight = self.sess.run([
+                            train_op,
+                            self.combine_images,
+                            self.total_loss,
+                            self.loss_weight],feed_dict = feed_dict)
 
-                        print('target_loss: %s' % target_loss),
-                        print('label_loss: %s' % label_loss),
+                        print('total_loss: %s' % _total_loss),
                         print('weight_fit: %s' % _weight)
 
                         write_image = self.float2rgb(np.squeeze(write_image))
