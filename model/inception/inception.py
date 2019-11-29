@@ -13,7 +13,7 @@ class inception(object):
         self.X = image
         self.is_training = is_training
         self.checkpoint_exclude_scopes = "Logits_out"
-    def __call__(self, dropout_keep_prob=0.8, is_train=False):
+    def inception_v4(self, dropout_keep_prob=0.8, is_train=False):
         arg_scope = inception_v4_arg_scope()
         with slim.arg_scope(arg_scope):
             net, end_points = inception_v4(self.X, is_training=self.is_training)

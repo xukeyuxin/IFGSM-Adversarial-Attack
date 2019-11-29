@@ -1,14 +1,14 @@
 import tensorflow as tf
-from model.resnet_50.resnet_v2 import  resnet_arg_scope, resnet_v2_50,resnet_v2_101,resnet_v2_152
+from model.resnet.resnet_v2 import resnet_arg_scope, resnet_v2_50,resnet_v2_101,resnet_v2_152
 slim = tf.contrib.slim
 
-class resnet_50(object):
+class resnet(object):
     def __init__(self,image,is_training = True):
         self.num_classes = 1000 
         self.X = image
         self.is_training = is_training
-        self.checkpoint_exclude_scopes = "Logits_out"
-    def __call__(self):
+        # self.checkpoint_exclude_scopes = "Logits_out"
+    def resnet_50(self):
         arg_scope = resnet_arg_scope()
         with slim.arg_scope(arg_scope):
             net, end_points = resnet_v2_50(self.X, is_training=self.is_training)
