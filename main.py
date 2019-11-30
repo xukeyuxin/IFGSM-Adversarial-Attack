@@ -24,7 +24,7 @@ parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
 
-parser.add_argument("-mty", "--model_type", type=str, default="resnet_101") ## vgg_16 resnet_50 resnet_101
+parser.add_argument("-mty", "--model_type", type=str, default="resnet_152") ## vgg_16 resnet_50 resnet_101
 
 # Train Iteration
 parser.add_argument("-iw", "--image_weight", type=int, default=299)
@@ -41,13 +41,13 @@ parser.add_argument("-ldf", "--lr_decay_factor", type=float, default=0.1)
 parser.add_argument("-om", "--opt_momentum", type=float, default=0.9)
 parser.add_argument("-wd", "--weight_decay", type=float, default=1e-4)
 parser.add_argument("-ng", "--num_gpu", type=int, default=1)
-parser.add_argument("-gi", "--gpu_index", type=str, default='1')
+parser.add_argument("-gi", "--gpu_index", type=str, default='0')
 
 
 
 
 
-parser.add_argument("-ac", "--action", type=str, default='attack')
+parser.add_argument("-ac", "--action", type=str, default='train')
 
 
 
