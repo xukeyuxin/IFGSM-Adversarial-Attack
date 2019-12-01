@@ -546,12 +546,11 @@ class Classify(op_base):
 
                     if(i % 100 == 0):
                         
-                        _, write_image, _total_loss,_weight,_gradient_mask = self.sess.run([
+                        _, write_image, _total_loss,_weight = self.sess.run([
                             train_op,
                             self.combine_images,
                             self.total_loss,
-                            self.loss_weight,
-                            self.gradient_mask
+                            self.loss_weight
                             ],feed_dict = feed_dict)
 
                         print('total_loss: %s' % _total_loss),
