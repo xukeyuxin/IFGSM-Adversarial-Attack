@@ -491,7 +491,7 @@ class Classify(op_base):
         gradient_mix = tf.reshape(finetune_grad + loss1_grad, 299*299*3)
         gradient_mask_index = tf.math.top_k(gradient_mix, 100).indices
         gradient_mask_value = tf.math.top_k(gradient_mix, 100).values
-        gradient_mask = tf.reshape(tf.scatter_nd(gradient_mask_index,gradient_mask_value,gradient_mix.shape), [-1,299,299,3])
+        gradient_mask = tf.reshape(tf.scatter_nd(gradient_mask_index,gradient_mask_value, tf.zeros_like(gradient_mix)), [-1,299,299,3])
         
         self.gradient_mask = gradient_mask
         update_noise = self.tmp_noise - lr * (finetune_grad + loss1_grad) * gradient_mask
