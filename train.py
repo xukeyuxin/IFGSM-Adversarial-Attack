@@ -488,7 +488,13 @@ class Classify(op_base):
         # finetune_grad = 0.
 
         # tmp_noise = self.noise - lr * (finetune_grad + loss1_v)
-        update_noise = self.tmp_noise - lr * (finetune_grad + loss1_grad)
+        gradient_mix = finetune_grad + loss1_grad
+        gradient_mask_index = tf.math.top_k(gradient_mix, 100).indices
+        gradient_mask_value = tf.math.top_k(gradient_mix, 100).values
+        gradient_mask = tf.scatter_nd(gradient_mask_index,gradient_mask_value,gradient_mix.shape)
+        
+        self.gradient_mask = gradient_mask
+        update_noise = self.tmp_noise - lr * (finetune_grad + loss1_grad) * gradient_mask
         update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
         update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
         # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
@@ -538,15 +544,17 @@ class Classify(op_base):
 
                     if(i % 100 == 0):
                         
-                        _, write_image, _total_loss,_weight = self.sess.run([
+                        _, write_image, _total_loss,_weight,_gradient_mask = self.sess.run([
                             train_op,
                             self.combine_images,
                             self.total_loss,
-                            self.loss_weight
+                            self.loss_weight,
+                            self.gradient_mask
                             ],feed_dict = feed_dict)
 
                         print('total_loss: %s' % _total_loss),
                         print('weight_fit: %s' % _weight)
+                        print('grident_mask: %s' % _gradient_mask)
                         # logit_show = np.argsort(np.squeeze(_logits_resnet_50))[-10:]
                         # print('total_logits: %s' % logit_show),
 
