@@ -17,7 +17,6 @@ class inception(object):
         arg_scope = inception_v4_arg_scope()
         with slim.arg_scope(arg_scope):
             net, end_points = inception_v4(self.X, is_training=self.is_training)
-            print(net.get_shape())
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('InceptionV4',reuse=tf.AUTO_REUSE):
                 # 8 x 8 x 1536
@@ -36,11 +35,9 @@ class inception(object):
         arg_scope = inception_v3_arg_scope()
         with slim.arg_scope(arg_scope):
             net, end_points = inception_v3(self.X, is_training=self.is_training)
-            print(net.get_shape())
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('InceptionV3',reuse=tf.AUTO_REUSE):
                 # 8 x 8 x 2048
-                print(net.get_shape())
                 net = slim.avg_pool2d(net, net.get_shape()[1:3], padding='VALID',
                                         scope='AvgPool_1a_out')
                 # 1 x 1 x 2048
@@ -56,11 +53,9 @@ class inception(object):
         arg_scope = inception_resnet_v2_arg_scope()
         with slim.arg_scope(arg_scope):
             net, end_points = inception_resnet_v2(self.X, is_training=self.is_training)
-            print(net.get_shape())
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('InceptionResnetV2',reuse=tf.AUTO_REUSE):
                 # 8 x 8 x 2080
-                print(net.get_shape())
                 net = slim.avg_pool2d(net, net.get_shape()[1:3], padding='VALID',
                                         scope='AvgPool_1a_out')
                 # 1 x 1 x 2080
@@ -92,9 +87,13 @@ class inception(object):
                 variables_to_restore.append(var)
         return variables_to_restore,variables_to_train
 
-    def get_train_restore_vars(self):
+    def get_train_restore_vars(self,scope_list = None):
         if(self.is_training):
             variables_to_restore,variables_to_train = self.g_parameter()
         else:
-            variables_to_restore, variables_to_train = slim.get_model_variables(), []
+            variables_to_train = []
+            if(scope_list):
+                variables_to_restore = slim.get_model_variables(scope = scope_list)
+            else:
+                variables_to_restore = slim.get_model_variables()
         return variables_to_restore, variables_to_train

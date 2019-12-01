@@ -73,10 +73,21 @@ class resnet(object):
                 variables_to_restore.append(var)
         return variables_to_restore,variables_to_train
 
-    def get_train_restore_vars(self):
+    def get_train_restore_vars(self,scope = None):
         if(self.is_training):
             variables_to_restore,variables_to_train = self.g_parameter()
         else:
-            variables_to_restore, variables_to_train = slim.get_model_variables(), []
+            variables_to_train = []
+            if(scope):
+                variables_to_restore = slim.get_model_variables(scope = scope)
+            else:
+                variables_to_restore = slim.get_model_variables()
         return variables_to_restore, variables_to_train
+
+    # def get_train_restore_vars(self):
+    #     if(self.is_training):
+    #         variables_to_restore,variables_to_train = self.g_parameter()
+    #     else:
+    #         variables_to_restore, variables_to_train = slim.get_model_variables(), []
+    #     return variables_to_restore, variables_to_train
 
