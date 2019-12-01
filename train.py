@@ -492,6 +492,7 @@ class Classify(op_base):
         gradient_mask_index = tf.math.top_k(gradient_mix, 100).indices
         gradient_mask_value = tf.math.top_k(gradient_mix, 100).values
         gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_value, tf.zeros_like(gradient_mix))
+        print('find update')
         print(gradient_scatter)
         gradient_mask = tf.reshape(gradient_scatter, [-1,299,299,3])
         
