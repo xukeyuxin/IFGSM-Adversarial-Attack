@@ -338,7 +338,8 @@ class Classify(op_base):
         ## init
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
         grad_init = 0.
-        self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
+        # self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
+        self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(0.))
         self.v1_grad = tf.get_variable('noise_grad',shape = [1,299,299,3],initializer= tf.constant_initializer(grad_init))
 
     def tf_preprocess(self,img,lar_size,out_size):
@@ -493,12 +494,17 @@ class Classify(op_base):
         # loss_weight = r3 * 0.025 * loss_l2 
 
         finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
-        finetune_grad_mask = mask_gradient(finetune_grad)
-        # finetune_grad = 0.
+        
+        ### mix_grad mask
+        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
+
+        ### finetune grad mask + l2_loss
+        # finetune_grad_mask = mask_gradient(finetune_grad)
+        # mix_grad_mask = finetune_grad_mask + loss1_grad
 
         ### gradient_mask
 
-        update_noise = self.tmp_noise - lr * tf.sign(finetune_grad_mask + loss1_grad)
+        update_noise = self.tmp_noise - lr * tf.sign(mix_grad_mask)
         update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
         update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
         # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
