@@ -377,6 +377,14 @@ class Classify(op_base):
         # self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
+        def mask_gradient(grads,keep_probs = 100,flatten_shape = [299*299*3]):
+            gradient_mix = tf.reshape(grads, flatten_shape)
+            gradient_mask_index = tf.nn.top_k(gradient_mix, keep_probs).indices
+            gradient_mask_index = tf.expand_dims(gradient_mask_index,axis = -1)
+            gradient_mask_value = tf.nn.top_k(gradient_mix, keep_probs).values
+            gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_value, flatten_shape)
+            gradient_mask = tf.reshape(gradient_scatter, [-1,299,299,3])
+            return gradient_mask
 
         ### softmax loss
         tmp_noise = self.pre_noise(self.mask)
@@ -485,18 +493,12 @@ class Classify(op_base):
         # loss_weight = r3 * 0.025 * loss_l2 
 
         finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        finetune_grad_mask = mask_gradient(finetune_grad)
         # finetune_grad = 0.
 
         ### gradient_mask
-        flatten_shape = [299*299*3]
-        gradient_mix = tf.reshape(finetune_grad + loss1_grad, flatten_shape)
-        gradient_mask_index = tf.nn.top_k(gradient_mix, 100).indices
-        gradient_mask_index = tf.expand_dims(gradient_mask_index,axis = -1)
-        gradient_mask_value = tf.nn.top_k(gradient_mix, 100).values
-        gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_value, flatten_shape)
-        gradient_mask = tf.reshape(gradient_scatter, [-1,299,299,3])
 
-        update_noise = self.tmp_noise - lr * tf.sign(finetune_grad + loss1_grad)
+        update_noise = self.tmp_noise - lr * tf.sign(finetune_grad_mask + loss1_grad)
         update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
         update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
         # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
@@ -544,7 +546,7 @@ class Classify(op_base):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
-                    if(i % 100 == 0):
+                    if(i % 50 == 0):
                         
                         _, write_image, _total_loss,_weight = self.sess.run([
                             train_op,
