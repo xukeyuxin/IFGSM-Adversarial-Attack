@@ -383,7 +383,7 @@ class Classify(op_base):
         # self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
-        def mask_gradient(grads,keep_probs = 10000,flatten_shape = [299*299*3]):
+        def mask_gradient(grads,keep_probs = 100,flatten_shape = [299*299*3]):
             gradient_mix = tf.reshape(grads, flatten_shape)
             gradient_mask_index = tf.nn.top_k(gradient_mix, keep_probs).indices
             gradient_mask_index = tf.expand_dims(gradient_mask_index,axis = -1)
