@@ -404,11 +404,11 @@ class Classify(op_base):
         self.init_all_var()
 
         loss_total = 0
-        model_weight_length = len(self.model_list)
+        model_weight_length = len(self.model_list) + 12
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
-                alpha1 = 1 / model_weight_length
+                alpha1 = 5 / model_weight_length
                 logits_inception_v4 = self.inception_v4_model.logits
                 target_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v4)) 
                 label_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v4)) 
@@ -420,7 +420,7 @@ class Classify(op_base):
 
             elif(item == 'inception_v3'):
                 ## inception3
-                alpha2 = 1 / model_weight_length
+                alpha2 = 5 / model_weight_length
                 logits_inception_v3 = self.inception_v3_model.logits
                 target_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v3)) 
                 label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
@@ -432,7 +432,7 @@ class Classify(op_base):
 
             elif(item == 'inception_res'):
                 ## inception_res
-                alpha3 = 1 / model_weight_length
+                alpha3 = 5 / model_weight_length
                 logits_inception_res = self.inception_res_model.logits
                 target_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_res)) 
                 label_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_res)) 
