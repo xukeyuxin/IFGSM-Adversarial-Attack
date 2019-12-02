@@ -80,9 +80,7 @@ class Classify(op_base):
                     self.pre_model = 'model/inception/model/inception_res/inception_res.ckpt'
 
                 self.init_model()
-                self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-                print('find variable shape % s' % len(self.variables_to_restore))    
-                print('find variable shape % s' % len(self.variables_to_train))             
+                self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()           
                 self.saver = tf.train.Saver(self.variables_to_restore)
                 self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
             
@@ -555,7 +553,7 @@ class Classify(op_base):
                 _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(0,151)):
+                for i in tqdm(range(0,201)):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
