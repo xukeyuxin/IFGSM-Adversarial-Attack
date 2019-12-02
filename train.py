@@ -3,6 +3,7 @@ from model.inception.inception import inception
 from model.vgg.vgg_16 import VGG16
 from model.resnet.resnet import resnet
 import numpy as np
+from functools import reduce
 import json
 import pickle 
 from op_base import op_base
@@ -20,8 +21,8 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152']
-        # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101']
+        # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152']
+        self.model_list = ['inception_v4']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -262,14 +263,13 @@ class Classify(op_base):
     def tensor_normal_2(self,input):
         return input / tf.sqrt(tf.reduce_sum(tf.square(input)))
 
-    def xavier_initializer(self,shape, factor = 1.):
-        factor = float(factor)
-        fan_in = shape[-1]
-        fan_out = shape[-1]
-        variation = (2/( fan_in +fan_out))*factor
-        dev = math.sqrt(variation)
-        # result = tf.truncated_normal(shape,mean = 0, stddev = dev)
-        result = np.random.normal(0,dev,shape)
+    def xavier_initializer(self,shape, gain = 1.):
+        if(len(shape) == 4):
+            fan_in = reduce( np.multiply, shape[1:] )  # 输入通道
+            fan_out = reduce( np.multiply, shape[1:] )  # 输出通道
+        variation = (2/( fan_in +fan_out)) * gain
+        std = math.sqrt(variation)
+        result = np.random.normal(0,std,shape)
         return result
        
     def find_sim(self):
@@ -338,8 +338,8 @@ class Classify(op_base):
         ## init
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
         grad_init = 0.
-        # self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
-        self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(0.))
+        self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
+        # self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(0.))
         self.v1_grad = tf.get_variable('noise_grad',shape = [1,299,299,3],initializer= tf.constant_initializer(grad_init))
 
     def tf_preprocess(self,img,lar_size,out_size):
@@ -397,7 +397,7 @@ class Classify(op_base):
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
-                alpha1 = 1
+                alpha1 = 1 / len(self.model_list)
                 logits_inception_v4 = self.inception_v4_model.logits
                 target_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v4)) 
                 label_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v4)) 
@@ -406,7 +406,7 @@ class Classify(op_base):
 
             elif(item == 'inception_v3'):
                 ## inception3
-                alpha2 = 1
+                alpha2 = 1 / len(self.model_list)
                 logits_inception_v3 = self.inception_v3_model.logits
                 target_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v3)) 
                 label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
@@ -415,7 +415,7 @@ class Classify(op_base):
 
             elif(item == 'inception_res'):
                 ## inception_res
-                alpha3 = 1
+                alpha3 = 1 / len(self.model_list)
                 logits_inception_res = self.inception_res_model.logits
                 target_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_res)) 
                 label_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_res)) 
@@ -424,7 +424,7 @@ class Classify(op_base):
 
             elif(item == 'resnet_50'):
                 ## resnet_50
-                alpha4 = 1
+                alpha4 = 1 / len(self.model_list)
                 logits_resnet_50 = self.resnet_50_model.logits
                 target_cross_entropy_resnet_50= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_50)) 
                 label_cross_entropy_resnet_50 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_50)) 
@@ -433,7 +433,7 @@ class Classify(op_base):
 
             elif(item == 'resnet_101'):
                 ## resnet_101
-                alpha5 = 1
+                alpha5 = 1 / len(self.model_list)
                 logits_resnet_101 = self.resnet_101_model.logits
                 target_cross_entropy_resnet_101= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_101)) 
                 label_cross_entropy_resnet_101 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_101)) 
@@ -446,12 +446,12 @@ class Classify(op_base):
 
             elif(item == 'resnet_152'):
                 ## resnet_152
-                alpha6 = 1
+                alpha6 = 1 / len(self.model_list)
                 logits_resnet_152 = self.resnet_152_model.logits
                 target_cross_entropy_resnet_152= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_152)) 
                 label_cross_entropy_resnet_152 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_152)) 
                 loss_resnet_152 = target_cross_entropy_resnet_152 - label_cross_entropy_resnet_152
-                loss_total += loss_resnet_152 * alpha5
+                loss_total += loss_resnet_152 * alpha6
 
         #### logits
         # logits_base = self.model(self.combine_images)
