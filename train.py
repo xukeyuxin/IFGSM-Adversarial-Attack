@@ -384,7 +384,7 @@ class Classify(op_base):
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
 
-        def mask_gradient(grads,drop_probs = int(0.01 * 299 * 299),flatten_shape = [299*299,3]):
+        def mask_gradient(grads,drop_probs = int(0.005 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
             grads_flatten = tf.reshape(grads,flatten_shape)
 
@@ -555,7 +555,7 @@ class Classify(op_base):
                 _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(0,2001)):
+                for i in tqdm(range(0,151)):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
