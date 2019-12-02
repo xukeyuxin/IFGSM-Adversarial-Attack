@@ -384,15 +384,20 @@ class Classify(op_base):
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
 
-        def mask_gradient(grads,drop_probs = int(0.9 * 299 * 299),flatten_shape = [299*299]):
+        def mask_gradient(grads,drop_probs = int(0.9 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
-            grads_flatten = tf.reshape(grads,[299*299,3])
+            grads_flatten = tf.reshape(grads,flatten_shape)
 
             gradient_mix = tf.reduce_sum(tf.abs(grads_flatten),axis = -1)
-            print(gradient_mix)
 
-            gradient_mask_index = tf.nn.top_k(gradient_mix, drop_probs,sorted = True).indices
-            zeros_item = tf.zeros([3])
+            top_op = tf.nn.top_k(gradient_mix, drop_probs,sorted = True)
+            gradient_mask_index = top_op.indices
+            gradient_mask_zero_value = top_op.values * 0.
+            gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_zero_value, flatten_shape)
+            print(gradient_scatter.shape)
+            gradient_scatter = tf.concat(  3 * [gradient_mask_zero_value], axis = -1 )
+            print(gradient_scatter.shape)
+            grads_flatten = grads_flatten * gradient_scatter
             def update(index):
                 grads_flatten[index] = zeros_item
             tf.map_fn(update,gradient_mask_index)
