@@ -399,7 +399,7 @@ class Classify(op_base):
         self.init_all_var()
 
         loss_total = 0
-        model_weight_length = len(self.model_list)
+        model_weight_length = len(self.model_list) + 2
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
@@ -421,7 +421,7 @@ class Classify(op_base):
 
             elif(item == 'inception_res'):
                 ## inception_res
-                alpha3 = 2 / model_weight_length
+                alpha3 = 1 / model_weight_length
                 logits_inception_res = self.inception_res_model.logits
                 target_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_res)) 
                 label_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_res)) 
@@ -496,11 +496,11 @@ class Classify(op_base):
         finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
         
         ### mix_grad mask
-        # mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
+        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
 
         ### finetune grad mask + l2_loss
-        loss1_grad_mask = mask_gradient(loss1_grad)
-        mix_grad_mask = loss1_grad_mask + finetune_grad
+        # loss1_grad_mask = mask_gradient(loss1_grad)
+        # mix_grad_mask = loss1_grad_mask + finetune_grad
 
         ### gradient_mask
 
