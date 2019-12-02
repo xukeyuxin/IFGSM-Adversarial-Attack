@@ -383,13 +383,28 @@ class Classify(op_base):
         # self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
-        def mask_gradient(grads,keep_probs = 10000,flatten_shape = [299*299*3]):
-            gradient_mix = tf.reshape(grads, flatten_shape)
-            gradient_mask_index = tf.nn.top_k(gradient_mix, keep_probs).indices
-            gradient_mask_index = tf.expand_dims(gradient_mask_index,axis = -1)
-            gradient_mask_value = tf.nn.top_k(gradient_mix, keep_probs).values
-            gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_value, flatten_shape)
-            gradient_mask = tf.reshape(gradient_scatter, [-1,299,299,3])
+
+        def mask_gradient(grads,drop_probs = int(0.9 * 299 * 299),flatten_shape = [299*299]):
+            grads = tf.squeeze(grads)
+            grads_flatten = tf.reshape(grads,[299*299,3])
+
+            gradient_mix = tf.reduce_sum(tf.abs(grads),axis = -1)
+            print(gradient_mix)
+            
+            gradient_mask_index = tf.nn.top_k(gradient_mix, drop_probs,sorted = True).indices
+            zeros_item = tf.zeros([3])
+            def update(index):
+                grads_flatten[index] = zeros_item
+            tf.map_fn(update,gradient_mask_index)
+
+            print(grads_flatten)
+
+            # gradient_mask_index = tf.nn.top_k(gradient_mix, drop_probs,sorted = True).indices
+            # gradient_mask_index = tf.expand_dims(gradient_mask_index,axis = -1)
+            # gradient_mask_value = tf.nn.top_k(gradient_mix, drop_probs).values
+            # gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_value, flatten_shape)
+            gradient_mask = tf.reshape(grads_flatten, [-1,299,299,3])
+
             return gradient_mask
 
         ### softmax loss
