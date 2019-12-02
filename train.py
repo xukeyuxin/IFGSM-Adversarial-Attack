@@ -392,21 +392,11 @@ class Classify(op_base):
 
             top_op = tf.nn.top_k(gradient_mix, drop_probs)
             gradient_mask_index = tf.expand_dims(top_op.indices,-1)
-            gradient_mask_zero_value = tf.tile( tf.expand_dims(top_op.values,axis = -1) , [3,1] ) 
+            gradient_mask_zero_value = tf.tile( tf.expand_dims(tf.ones_like(top_op.values),axis = -1) , [1,3] ) 
             gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_zero_value, [299*299,3])
             print(gradient_scatter.shape)
             grads_flatten = grads_flatten * gradient_scatter
             print(grads_flatten.shape)
-            # grads_flatten = grads_flatten * gradient_scatter
-            # def update(index):
-            #     grads_flatten[index] = zeros_item
-            # tf.map_fn(update,gradient_mask_index)
-
-
-            # gradient_mask_index = tf.nn.top_k(gradient_mix, drop_probs,sorted = True).indices
-            # gradient_mask_index = tf.expand_dims(gradient_mask_index,axis = -1)
-            # gradient_mask_value = tf.nn.top_k(gradient_mix, drop_probs).values
-            # gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_value, flatten_shape)
             gradient_mask = tf.reshape(grads_flatten, [-1,299,299,3])
 
             return gradient_mask
