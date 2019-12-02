@@ -21,8 +21,8 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152']
-        self.model_list = ['inception_v4']
+        self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152']
+        # self.model_list = ['inception_v4']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
