@@ -76,6 +76,8 @@ if __name__ == '__main__':
             model.train()
         elif(args.action == 'eval'):
             model.eval()
+        elif(args.action == 'eval_local'):
+            model.eval_local()
         elif(args.action == 'attack'):
             model.attack()
         # model.eval_finetune()

@@ -74,10 +74,15 @@ class Classify(op_base):
                 self.model = inception(self.input_images,is_training = is_training)
                 self.model.inception_res()
                 self.save_model = 'model/inception/model/inception_res'
-                self.pre_model = 'model/inception/pretrain/inception_resnet_v2.ckpt'
+                if(is_training):
+                    self.pre_model = 'model/inception/pretrain/inception_resnet_v2.ckpt'   
+                else:
+                    self.pre_model = 'model/inception/model/inception_res/inception_res.ckpt'
+
                 self.init_model()
                 self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
-                print('find variable shape % s' % len(self.variables_to_restore))              
+                print('find variable shape % s' % len(self.variables_to_restore))    
+                print('find variable shape % s' % len(self.variables_to_train))             
                 self.saver = tf.train.Saver(self.variables_to_restore)
                 self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
             
@@ -378,7 +383,7 @@ class Classify(op_base):
         # self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
-        def mask_gradient(grads,keep_probs = 100,flatten_shape = [299*299*3]):
+        def mask_gradient(grads,keep_probs = 10000,flatten_shape = [299*299*3]):
             gradient_mix = tf.reshape(grads, flatten_shape)
             gradient_mask_index = tf.nn.top_k(gradient_mix, keep_probs).indices
             gradient_mask_index = tf.expand_dims(gradient_mask_index,axis = -1)
@@ -484,23 +489,17 @@ class Classify(op_base):
 
         r3 = 1.
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 400,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 600,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 700,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 800,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 1000,lambda: r3 * 0.1,lambda: r3)
-
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
         # loss_weight = r3 * 0.025 * loss_l2 
 
         finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
         
         ### mix_grad mask
-        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
+        # mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
 
         ### finetune grad mask + l2_loss
-        # finetune_grad_mask = mask_gradient(finetune_grad)
-        # mix_grad_mask = finetune_grad_mask + loss1_grad
+        finetune_grad_mask = mask_gradient(finetune_grad)
+        mix_grad_mask = finetune_grad_mask + loss1_grad
 
         ### gradient_mask
 
@@ -630,6 +629,21 @@ class Classify(op_base):
             image_content = np.expand_dims(content,0)
             _softmax = self.sess.run(softmax,feed_dict = {self.input_images:image_content})
             print(_p)
+            print(np.argsort(np.squeeze(_softmax))[-10:])
+            return 
+
+    def eval_local(self):
+        self.sess.run(tf.global_variables_initializer())
+        self.saver.restore(self.sess, self.pre_model)
+
+        logit = self.model.logits
+        softmax = tf.nn.softmax(logit)
+        while True:
+            image_list =  [ os.path.join('data/test',path) for path in os.listdir('data/test') ]
+            content = self.data.rbg2float(cv2.imread(image_list[0]))
+            image_content = np.expand_dims(content,0)
+            _softmax = self.sess.run(softmax,feed_dict = {self.input_images:image_content})
+            print(np.sort(np.squeeze(_softmax))[-10:])
             print(np.argsort(np.squeeze(_softmax))[-10:])
             return 
 
