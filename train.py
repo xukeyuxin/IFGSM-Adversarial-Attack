@@ -360,7 +360,7 @@ class Classify(op_base):
 
         return img
 
-    def attack_graph(self,lr = 0.1,momentum = 0.):
+    def attack_graph(self,lr = 0.1,momentum = 0.5):
         def entropy_loss(logits):
             label_loss_cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits))
             target_loss_cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits))
@@ -384,7 +384,7 @@ class Classify(op_base):
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
 
-        def mask_gradient(grads,drop_probs = int(0.02 * 299 * 299),flatten_shape = [299*299,3]):
+        def mask_gradient(grads,drop_probs = int(0.01 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
             grads_flatten = tf.reshape(grads,flatten_shape)
 
@@ -496,7 +496,7 @@ class Classify(op_base):
         loss_tv = self.tv_loss(tmp_noise)
 
         r3 = 1.
-        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
         # loss_weight = r3 * 0.025 * loss_l2 
 
