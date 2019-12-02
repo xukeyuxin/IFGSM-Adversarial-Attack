@@ -415,6 +415,9 @@ class Classify(op_base):
                 loss_inception_v4 = target_cross_entropy_inception_v4 - label_cross_entropy_inception_v4
                 loss_total += loss_inception_v4 * alpha1
 
+                self.target_cross_entropy_inception_v4 = target_cross_entropy_inception_v4
+                self.label_cross_entropy_inception_v4 = label_cross_entropy_inception_v4
+
             elif(item == 'inception_v3'):
                 ## inception3
                 alpha2 = 1 / model_weight_length
@@ -423,6 +426,9 @@ class Classify(op_base):
                 label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
                 loss_inception_v3 = target_cross_entropy_inception_v3 - label_cross_entropy_inception_v3
                 loss_total += loss_inception_v3 * alpha2
+
+                self.target_cross_entropy_inception_v3 = target_cross_entropy_inception_v3
+                self.label_cross_entropy_inception_v3 = label_cross_entropy_inception_v3
 
             elif(item == 'inception_res'):
                 ## inception_res
@@ -433,6 +439,9 @@ class Classify(op_base):
                 loss_inception_res = target_cross_entropy_inception_res - label_cross_entropy_inception_res
                 loss_total += loss_inception_res * alpha3
 
+                self.target_cross_entropy_inception_res = target_cross_entropy_inception_res
+                self.label_cross_entropy_inception_res = label_cross_entropy_inception_res
+
             elif(item == 'resnet_50'):
                 ## resnet_50
                 alpha4 = 1 / model_weight_length
@@ -442,6 +451,9 @@ class Classify(op_base):
                 loss_resnet_50 = target_cross_entropy_resnet_50 - label_cross_entropy_resnet_50
                 loss_total += loss_resnet_50 * alpha4
 
+                self.target_cross_entropy_resnet_50 = target_cross_entropy_resnet_50
+                self.label_cross_entropy_resnet_50 = label_cross_entropy_resnet_50
+
             elif(item == 'resnet_101'):
                 ## resnet_101
                 alpha5 = 1 / model_weight_length
@@ -449,11 +461,11 @@ class Classify(op_base):
                 target_cross_entropy_resnet_101= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_101)) 
                 label_cross_entropy_resnet_101 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_101)) 
                 loss_resnet_101 = target_cross_entropy_resnet_101 - label_cross_entropy_resnet_101
-
-                # self.target_cross_entropy_resnet_101 = target_cross_entropy_resnet_101
-                # self.label_cross_entropy_resnet_101 = label_cross_entropy_resnet_101
-                
                 loss_total += loss_resnet_101 * alpha5
+
+                self.target_cross_entropy_resnet_101 = target_cross_entropy_resnet_101
+                self.label_cross_entropy_resnet_101 = label_cross_entropy_resnet_101
+                
 
             elif(item == 'resnet_152'):
                 ## resnet_152
@@ -463,6 +475,9 @@ class Classify(op_base):
                 label_cross_entropy_resnet_152 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_152)) 
                 loss_resnet_152 = target_cross_entropy_resnet_152 - label_cross_entropy_resnet_152
                 loss_total += loss_resnet_152 * alpha6
+
+                self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
+                self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
 
         #### logits
         # logits_base = self.model(self.combine_images)
@@ -557,17 +572,41 @@ class Classify(op_base):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _ = self.sess.run(train_op,feed_dict = feed_dict)
 
-                    if(i % 50 == 0):
+                    if(i % 10 == 0):
                         
-                        _, write_image, _total_loss,_weight = self.sess.run([
+                        _, write_image, _total_loss,_weight,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
                             train_op,
                             self.combine_images,
                             self.total_loss,
-                            self.loss_weight
+                            self.loss_weight,
+                            self.target_cross_entropy_inception_v4,
+                            self.label_cross_entropy_inception_v4,
+                            self.target_cross_entropy_inception_v3,
+                            self.label_cross_entropy_inception_v3,
+                            self.target_cross_entropy_inception_res,
+                            self.label_cross_entropy_inception_res,
+                            self.target_cross_entropy_resnet_50,
+                            self.label_cross_entropy_resnet_50,
+                            self.target_cross_entropy_resnet_101,
+                            self.label_cross_entropy_resnet_101,
+                            self.target_cross_entropy_resnet_152,
+                            self.label_cross_entropy_resnet_152
                             ],feed_dict = feed_dict)
 
                         print('total_loss: %s' % _total_loss),
                         print('weight_fit: %s' % _weight)
+                        print('v4_tar: %s' % _target_cross_entropy_inception_v4)
+                        print('v4_lab: %s' % _label_cross_entropy_inception_v4)
+                        print('v3_tar: %s' % _target_cross_entropy_inception_v3)
+                        print('v3_lab: %s' % _label_cross_entropy_inception_v3)
+                        print('v_res: %s' % _target_cross_entropy_inception_res)
+                        print('v_res: %s' % _label_cross_entropy_inception_res)
+                        print('res50_tar: %s' % _target_cross_entropy_resnet_50)
+                        print('res50_lab: %s' % _label_cross_entropy_resnet_50)
+                        print('res101_tar: %s' % _target_cross_entropy_resnet_101)
+                        print('res101_lab: %s' % _label_cross_entropy_resnet_101)
+                        print('res152_tar: %s' % _target_cross_entropy_resnet_152)
+                        print('res152_lab: %s' % _label_cross_entropy_resnet_152)
                         # print('grident_mask: %s' % _gradient_mask)
                         # logit_show = np.argsort(np.squeeze(_logits_resnet_50))[-10:]
                         # print('total_logits: %s' % logit_show),
