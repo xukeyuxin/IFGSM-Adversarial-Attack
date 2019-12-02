@@ -495,11 +495,11 @@ class Classify(op_base):
         finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
         
         ### mix_grad mask
-        # mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
+        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
 
         ### finetune grad mask + l2_loss
-        finetune_grad_mask = mask_gradient(finetune_grad)
-        mix_grad_mask = finetune_grad_mask + loss1_grad
+        # finetune_grad_mask = mask_gradient(finetune_grad)
+        # mix_grad_mask = finetune_grad_mask + loss1_grad
 
         ### gradient_mask
 
