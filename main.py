@@ -47,8 +47,8 @@ parser.add_argument("-gi", "--gpu_index", type=str, default='0')
 
 
 
-# parser.add_argument("-ac", "--action", type=str, default='attack')
-parser.add_argument("-ac", "--action", type=str, default='eval_local')
+parser.add_argument("-ac", "--action", type=str, default='attack')
+# parser.add_argument("-ac", "--action", type=str, default='eval_local')
 
 
 
