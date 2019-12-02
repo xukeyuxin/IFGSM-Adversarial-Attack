@@ -496,11 +496,11 @@ class Classify(op_base):
         finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
         
         ### mix_grad mask
-        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
+        # mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
 
         ### finetune grad mask + l2_loss
-        # loss1_grad_mask = mask_gradient(loss1_grad)
-        # mix_grad_mask = loss1_grad_mask + finetune_grad
+        loss1_grad_mask = mask_gradient(loss1_grad)
+        mix_grad_mask = loss1_grad_mask + finetune_grad
 
         ### gradient_mask
 
@@ -568,7 +568,7 @@ class Classify(op_base):
                         # print('total_logits: %s' % logit_show),
 
                         write_image = self.float2rgb(np.squeeze(write_image))
-                        image_combine_with_noise = os.path.join('data','result',_image_path)
+                        image_combine_with_noise = os.path.join('data','result',i + '_' + _image_path)
                         cv2.imwrite(image_combine_with_noise,write_image)
                          
 
