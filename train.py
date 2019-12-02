@@ -568,7 +568,7 @@ class Classify(op_base):
                         # print('total_logits: %s' % logit_show),
 
                         write_image = self.float2rgb(np.squeeze(write_image))
-                        image_combine_with_noise = os.path.join('data','result',i + '_' + _image_path)
+                        image_combine_with_noise = os.path.join('data','result',str(i) + '_' + _image_path)
                         cv2.imwrite(image_combine_with_noise,write_image)
                          
 
