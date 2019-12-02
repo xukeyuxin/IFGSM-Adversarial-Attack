@@ -388,9 +388,9 @@ class Classify(op_base):
             grads = tf.squeeze(grads)
             grads_flatten = tf.reshape(grads,[299*299,3])
 
-            gradient_mix = tf.reduce_sum(tf.abs(grads),axis = -1)
+            gradient_mix = tf.reduce_sum(tf.abs(grads_flatten),axis = -1)
             print(gradient_mix)
-            
+
             gradient_mask_index = tf.nn.top_k(gradient_mix, drop_probs,sorted = True).indices
             zeros_item = tf.zeros([3])
             def update(index):
