@@ -393,7 +393,7 @@ class Classify(op_base):
             top_op = tf.nn.top_k(gradient_mix, drop_probs,sorted = True)
             gradient_mask_index = top_op.indices
             gradient_mask_zero_value = top_op.values * 0.
-            gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_zero_value, flatten_shape)
+            gradient_scatter = tf.scatter_nd(gradient_mask_index,gradient_mask_zero_value, [299*299])
             print(gradient_scatter.shape)
             gradient_scatter = tf.concat(  3 * [gradient_mask_zero_value], axis = -1 )
             print(gradient_scatter.shape)
