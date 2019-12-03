@@ -382,6 +382,28 @@ class Classify(op_base):
         # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
         # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
 
+        def get_label_index(label):
+            _label = tf.squeeze(label)
+            _label_max = tf.argsort(_label)[-1:]
+            # assert _label_max.shape == []
+            return _label_max
+
+        def large_alpha_r(input,alpha = 5.):
+            _softmax_input = tf.squeeze(tf.nn.softmax(input))
+            _target_index = get_label_index(self.target_label)
+            _target_logit = tf.gather(_softmax_input,_target_index)
+            _second_value = tf.sort(_softmax_input)[-2]
+            print(_target_index)
+            print(_target_logit)
+            print(_second_value)
+            r = tf.cond( tf.squeeze(_target_logit) >= alpha * tf.squeeze(_second_value),lambda: 0.,lambda: 1.)
+            print(r)
+
+            return r
+
+            
+
+
         def mask_gradient(grads,drop_probs = int(0.005 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
             grads_flatten = tf.reshape(grads,flatten_shape)
@@ -404,7 +426,7 @@ class Classify(op_base):
         self.init_all_var()
 
         loss_total = 0
-        model_weight_length = len(self.model_list) + 2
+        model_weight_length = len(self.model_list) + 3
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
@@ -412,7 +434,11 @@ class Classify(op_base):
                 logits_inception_v4 = self.inception_v4_model.logits
                 target_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v4)) 
                 label_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v4)) 
-                loss_inception_v4 = target_cross_entropy_inception_v4 - label_cross_entropy_inception_v4
+
+                r_inception_v4_tar = large_alpha_r(logits_inception_v4)
+                r_inception_v4_lab = tf.cond( label_cross_entropy_inception_v4 > 50.,lambda: 0.,lambda: 1.)
+
+                loss_inception_v4 = r_inception_v4_tar * target_cross_entropy_inception_v4 - r_inception_v4_lab * label_cross_entropy_inception_v4
                 loss_total += loss_inception_v4 * alpha1
 
                 self.target_cross_entropy_inception_v4 = target_cross_entropy_inception_v4
@@ -425,7 +451,10 @@ class Classify(op_base):
                 target_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v3)) 
                 label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
 
-                loss_inception_v3 = target_cross_entropy_inception_v3 - label_cross_entropy_inception_v3
+                r_inception_v3_tar = large_alpha_r(logits_inception_v3)
+                r_inception_v3_lab = tf.cond( label_cross_entropy_inception_v3 > 50.,lambda: 0.,lambda: 1.)
+
+                loss_inception_v3 = r_inception_v3_tar * target_cross_entropy_inception_v3 - r_inception_v3_lab * label_cross_entropy_inception_v3
                 loss_total += loss_inception_v3 * alpha2
 
                 self.target_cross_entropy_inception_v3 = target_cross_entropy_inception_v3
@@ -433,14 +462,17 @@ class Classify(op_base):
 
             elif(item == 'inception_res'):
                 ## inception_res
-                alpha3 = 1 / model_weight_length
+                alpha3 = 2 / model_weight_length
                 logits_inception_res = self.inception_res_model.logits
                 target_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_res)) 
                 label_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_res))
 
                 # r_inception_res_tar = tf.cond( target_cross_entropy_inception_res < 0.1,lambda: 0.,lambda: 1.)
                 # r_inception_res_lab = tf.cond( label_cross_entropy_inception_res > 50.,lambda: 0.,lambda: 1.)
-                loss_inception_res = target_cross_entropy_inception_res - label_cross_entropy_inception_res
+                r_inception_res_tar = large_alpha_r(logits_inception_res)
+                r_inception_res_lab = tf.cond( label_cross_entropy_inception_res > 50.,lambda: 0.,lambda: 1.)
+
+                loss_inception_res = r_inception_res_tar * target_cross_entropy_inception_res - r_inception_res_lab * label_cross_entropy_inception_res
                 loss_total += loss_inception_res * alpha3
 
                 self.target_cross_entropy_inception_res = target_cross_entropy_inception_res
@@ -453,7 +485,8 @@ class Classify(op_base):
                 target_cross_entropy_resnet_50= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_50)) 
                 label_cross_entropy_resnet_50 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_50)) 
 
-                r_res50_tar = tf.cond( target_cross_entropy_resnet_50 < 0.1,lambda: 0.,lambda: 1.)
+                r_res50_tar = large_alpha_r(logits_resnet_50)
+                # r_res50_tar = tf.cond( target_cross_entropy_resnet_50 < 0.1,lambda: 0.,lambda: 1.)
                 r_res50_lab = tf.cond( label_cross_entropy_resnet_50 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_50 = r_res50_tar * target_cross_entropy_resnet_50 - r_res50_lab * label_cross_entropy_resnet_50
                 loss_total += loss_resnet_50 * alpha4
@@ -468,7 +501,8 @@ class Classify(op_base):
                 target_cross_entropy_resnet_101= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_101)) 
                 label_cross_entropy_resnet_101 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_101)) 
 
-                r_res101_tar = tf.cond( target_cross_entropy_resnet_101 < 0.1,lambda: 0.,lambda: 1.)
+                r_res101_tar = large_alpha_r(logits_resnet_101)
+                # r_res101_tar = tf.cond( target_cross_entropy_resnet_101 < 0.1,lambda: 0.,lambda: 1.)
                 r_res101_lab = tf.cond( label_cross_entropy_resnet_101 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_101 = r_res101_tar * target_cross_entropy_resnet_101 - r_res101_lab * label_cross_entropy_resnet_101
                 loss_total += loss_resnet_101 * alpha5
@@ -484,7 +518,8 @@ class Classify(op_base):
                 target_cross_entropy_resnet_152= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_152)) 
                 label_cross_entropy_resnet_152 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_152)) 
                 
-                r_res152_tar = tf.cond( target_cross_entropy_resnet_152 < 0.1,lambda: 0.,lambda: 1.)
+                r_res152_tar = large_alpha_r(logits_resnet_152)
+                # r_res152_tar = tf.cond( target_cross_entropy_resnet_152 < 0.1,lambda: 0.,lambda: 1.)
                 r_res152_lab = tf.cond( label_cross_entropy_resnet_152 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_152 = r_res152_tar * target_cross_entropy_resnet_152 - r_res152_lab * label_cross_entropy_resnet_152
                 loss_total += loss_resnet_152 * alpha6
