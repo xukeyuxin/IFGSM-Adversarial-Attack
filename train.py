@@ -440,7 +440,7 @@ class Classify(op_base):
 
                 # r_inception_res_tar = tf.cond( target_cross_entropy_inception_res < 0.1,lambda: 0.,lambda: 1.)
                 # r_inception_res_lab = tf.cond( label_cross_entropy_inception_res > 50.,lambda: 0.,lambda: 1.)
-                loss_inception_res = r_inception_res_tar * target_cross_entropy_inception_res - r_inception_res_lab * label_cross_entropy_inception_res
+                loss_inception_res = target_cross_entropy_inception_res - label_cross_entropy_inception_res
                 loss_total += loss_inception_res * alpha3
 
                 self.target_cross_entropy_inception_res = target_cross_entropy_inception_res
