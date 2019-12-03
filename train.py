@@ -393,12 +393,7 @@ class Classify(op_base):
             _target_index = get_label_index(self.target_label)
             _target_logit = tf.gather(_softmax_input,_target_index)
             _second_value = tf.sort(_softmax_input)[-2]
-            print(_target_index)
-            print(_target_logit)
-            print(_second_value)
             r = tf.cond( tf.squeeze(_target_logit) >= alpha * tf.squeeze(_second_value),lambda: 0.,lambda: 1.)
-            print(r)
-
             return r
 
             
@@ -426,6 +421,7 @@ class Classify(op_base):
         self.init_all_var()
 
         loss_total = 0
+        self.stop_value = 0.
         model_weight_length = len(self.model_list) + 3
         for item in self.model_list:
             if(item == 'inception_v4'):
@@ -440,6 +436,9 @@ class Classify(op_base):
 
                 loss_inception_v4 = r_inception_v4_tar * target_cross_entropy_inception_v4 - r_inception_v4_lab * label_cross_entropy_inception_v4
                 loss_total += loss_inception_v4 * alpha1
+
+                self.stop_value += r_inception_v4_tar
+                self.stop_value += r_inception_v4_lab
 
                 self.target_cross_entropy_inception_v4 = target_cross_entropy_inception_v4
                 self.label_cross_entropy_inception_v4 = label_cross_entropy_inception_v4
@@ -456,6 +455,9 @@ class Classify(op_base):
 
                 loss_inception_v3 = r_inception_v3_tar * target_cross_entropy_inception_v3 - r_inception_v3_lab * label_cross_entropy_inception_v3
                 loss_total += loss_inception_v3 * alpha2
+
+                self.stop_value += r_inception_v3_tar
+                self.stop_value += r_inception_v3_lab
 
                 self.target_cross_entropy_inception_v3 = target_cross_entropy_inception_v3
                 self.label_cross_entropy_inception_v3 = label_cross_entropy_inception_v3
@@ -475,6 +477,9 @@ class Classify(op_base):
                 loss_inception_res = r_inception_res_tar * target_cross_entropy_inception_res - r_inception_res_lab * label_cross_entropy_inception_res
                 loss_total += loss_inception_res * alpha3
 
+                self.stop_value += r_inception_res_tar
+                self.stop_value += r_inception_res_lab
+
                 self.target_cross_entropy_inception_res = target_cross_entropy_inception_res
                 self.label_cross_entropy_inception_res = label_cross_entropy_inception_res
 
@@ -490,6 +495,9 @@ class Classify(op_base):
                 r_res50_lab = tf.cond( label_cross_entropy_resnet_50 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_50 = r_res50_tar * target_cross_entropy_resnet_50 - r_res50_lab * label_cross_entropy_resnet_50
                 loss_total += loss_resnet_50 * alpha4
+
+                self.stop_value += r_res50_tar
+                self.stop_value += r_res50_lab
 
                 self.target_cross_entropy_resnet_50 = target_cross_entropy_resnet_50
                 self.label_cross_entropy_resnet_50 = label_cross_entropy_resnet_50
@@ -507,6 +515,9 @@ class Classify(op_base):
                 loss_resnet_101 = r_res101_tar * target_cross_entropy_resnet_101 - r_res101_lab * label_cross_entropy_resnet_101
                 loss_total += loss_resnet_101 * alpha5
 
+                self.stop_value += r_res101_tar
+                self.stop_value += r_res101_lab
+
                 self.target_cross_entropy_resnet_101 = target_cross_entropy_resnet_101
                 self.label_cross_entropy_resnet_101 = label_cross_entropy_resnet_101
                 
@@ -523,6 +534,9 @@ class Classify(op_base):
                 r_res152_lab = tf.cond( label_cross_entropy_resnet_152 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_152 = r_res152_tar * target_cross_entropy_resnet_152 - r_res152_lab * label_cross_entropy_resnet_152
                 loss_total += loss_resnet_152 * alpha6
+
+                self.stop_value += r_res152_tar
+                self.stop_value += r_res152_lab
 
                 self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
                 self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
@@ -618,7 +632,10 @@ class Classify(op_base):
                 print('start attack %s' % _image_path)
                 for i in tqdm(range(0,201)):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                    _ = self.sess.run(train_op,feed_dict = feed_dict)
+                    _,_stop = self.sess.run([train_op,self.stop_value],feed_dict = feed_dict)
+                    if(not _stop):
+                        print('finish one attack')
+                        return 
 
                     if(i % 10 == 0):
                         
