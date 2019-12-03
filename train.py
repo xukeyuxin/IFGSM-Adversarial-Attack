@@ -572,6 +572,8 @@ class Classify(op_base):
 
         r3 = 1.
         r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
+        
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
         # loss_weight = r3 * 0.025 * loss_l2 
 
@@ -599,6 +601,11 @@ class Classify(op_base):
         update_grad = tf.assign(self.v1_grad,loss1_grad)
         return tf.group(update_value,update_grad)
 
+    def writer(self,_image_path,write_image):
+        write_image = self.float2rgb(np.squeeze(write_image))
+        image_combine_with_noise = os.path.join('data','result',_image_path)
+        cv2.imwrite(image_combine_with_noise,write_image)
+         
     def attack(self):
         ## restore and init
         # self.sess.run(tf.global_variables_initializer())
@@ -610,15 +617,9 @@ class Classify(op_base):
         for item_index in attack_tasks:
 
             _image_path,_image_content,_label,_target = next(self.attack_generator)
-            
-
             label_np = np.array([int(_label)])
-
-            _target = '779'
             target_np = np.array([int(_target)])
-
-            
-
+  
             with open(os.path.join(root_dir,item_index,'single_label.pickle'),'rb') as f_single, open(os.path.join(root_dir,item_index,'target_best_feature.pickle'),'rb') as f_t:
 
                 # target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
@@ -630,18 +631,17 @@ class Classify(op_base):
                 _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
                 mask = np.ones([1,299,299,1])
                 print('start attack %s' % _image_path)
-                for i in tqdm(range(0,201)):
+                for i in tqdm(range(0,301)):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                    _,_stop = self.sess.run([train_op,self.stop_value],feed_dict = feed_dict)
+                    _,write_image,_total_loss,_weight,_stop = self.sess.run([train_op,self.combine_images,self.stop_value],feed_dict = feed_dict)
                     if(not _stop):
-                        print('finish one attack')
+                        self.writer(_image_path,write_image)
+                        print('finish one attack total_loss: %s weight: %s' % (_total_loss, _weight))
                         return 
 
                     if(i % 10 == 0):
-                        
-                        _, write_image, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
+                        _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
                             train_op,
-                            self.combine_images,
                             self.total_loss,
                             self.loss_weight,
                             self.stop_value,
@@ -673,16 +673,6 @@ class Classify(op_base):
                         print('res101_lab: %s' % _label_cross_entropy_resnet_101)
                         print('res152_tar: %s' % _target_cross_entropy_resnet_152)
                         print('res152_lab: %s' % _label_cross_entropy_resnet_152)
-                        # print('grident_mask: %s' % _gradient_mask)
-                        # logit_show = np.argsort(np.squeeze(_logits_resnet_50))[-10:]
-                        # print('total_logits: %s' % logit_show),
-
-                        write_image = self.float2rgb(np.squeeze(write_image))
-                        image_combine_with_noise = os.path.join('data','result',str(i) + '_' + _image_path)
-                        cv2.imwrite(image_combine_with_noise,write_image)
-                         
-
-                print('finish %s' % _image_path)
 
     def train(self):
         self.data.load_fineune_data()
