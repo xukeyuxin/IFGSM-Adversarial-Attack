@@ -639,11 +639,12 @@ class Classify(op_base):
 
                     if(i % 10 == 0):
                         
-                        _, write_image, _total_loss,_weight,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
+                        _, write_image, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
                             train_op,
                             self.combine_images,
                             self.total_loss,
                             self.loss_weight,
+                            self.stop_value,
                             self.target_cross_entropy_inception_v4,
                             self.label_cross_entropy_inception_v4,
                             self.target_cross_entropy_inception_v3,
@@ -657,7 +658,7 @@ class Classify(op_base):
                             self.target_cross_entropy_resnet_152,
                             self.label_cross_entropy_resnet_152
                             ],feed_dict = feed_dict)
-
+                        print('stop value: %s' % _stop),
                         print('total_loss: %s' % _total_loss),
                         print('weight_fit: %s' % _weight)
                         print('v4_tar: %s' % _target_cross_entropy_inception_v4)
