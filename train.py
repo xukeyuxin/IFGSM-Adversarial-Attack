@@ -438,8 +438,8 @@ class Classify(op_base):
                 target_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_res)) 
                 label_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_res))
 
-                r_inception_res_tar = tf.cond( target_cross_entropy_inception_res < 0.1,lambda: 0.,lambda: 1.)
-                r_inception_res_lab = tf.cond( label_cross_entropy_inception_res > 50.,lambda: 0.,lambda: 1.)
+                # r_inception_res_tar = tf.cond( target_cross_entropy_inception_res < 0.1,lambda: 0.,lambda: 1.)
+                # r_inception_res_lab = tf.cond( label_cross_entropy_inception_res > 50.,lambda: 0.,lambda: 1.)
                 loss_inception_res = r_inception_res_tar * target_cross_entropy_inception_res - r_inception_res_lab * label_cross_entropy_inception_res
                 loss_total += loss_inception_res * alpha3
 
@@ -612,8 +612,8 @@ class Classify(op_base):
                         print('v4_lab: %s' % _label_cross_entropy_inception_v4)
                         print('v3_tar: %s' % _target_cross_entropy_inception_v3)
                         print('v3_lab: %s' % _label_cross_entropy_inception_v3)
-                        print('v_res: %s' % _target_cross_entropy_inception_res)
-                        print('v_res: %s' % _label_cross_entropy_inception_res)
+                        print('v_res_tar: %s' % _target_cross_entropy_inception_res)
+                        print('v_res_lab: %s' % _label_cross_entropy_inception_res)
                         print('res50_tar: %s' % _target_cross_entropy_resnet_50)
                         print('res50_lab: %s' % _label_cross_entropy_resnet_50)
                         print('res101_tar: %s' % _target_cross_entropy_resnet_101)

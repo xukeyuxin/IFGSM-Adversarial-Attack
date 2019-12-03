@@ -26,8 +26,8 @@ class inception(object):
                 net = slim.dropout(net, dropout_keep_prob, scope='Dropout_1b_out')
                 net = slim.flatten(net, scope='PreLogitsFlatten_out')
                 # 1536
-                net = slim.fully_connected(net, 256, activation_fn=tf.nn.relu, scope='Logits_out0')
-                net = slim.fully_connected(net, self.num_classes, activation_fn=None,scope='Logits_out1')
+                # net = slim.fully_connected(net, 256, activation_fn=tf.nn.relu, scope='Logits_out0')
+                net = slim.fully_connected(net, self.num_classes, activation_fn=None,scope='Logits_out0')
         self.logits = net
         return net
     
@@ -44,8 +44,8 @@ class inception(object):
                 net = slim.dropout(net, dropout_keep_prob, scope='Dropout_1b_out')
                 net = slim.flatten(net, scope='PreLogitsFlatten_out')
                 # 2048
-                net = slim.fully_connected(net, 256, activation_fn=tf.nn.relu, scope='Logits_out0')
-                net = slim.fully_connected(net, self.num_classes, activation_fn=None,scope='Logits_out1')
+                # net = slim.fully_connected(net, 256, activation_fn=tf.nn.relu, scope='Logits_out0')
+                net = slim.fully_connected(net, self.num_classes, activation_fn=None,scope='Logits_out0')
         self.logits = net
         return net
     
