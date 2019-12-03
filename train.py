@@ -573,7 +573,7 @@ class Classify(op_base):
         r3 = 1.
         r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
-        
+
         loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
         # loss_weight = r3 * 0.025 * loss_l2 
 
@@ -633,7 +633,7 @@ class Classify(op_base):
                 print('start attack %s' % _image_path)
                 for i in tqdm(range(0,301)):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                    _,write_image,_total_loss,_weight,_stop = self.sess.run([train_op,self.combine_images,self.stop_value],feed_dict = feed_dict)
+                    _,write_image,_total_loss,_weight,_stop = self.sess.run([train_op,self.combine_images,self.total_loss,self.loss_weight,self.stop_value],feed_dict = feed_dict)
                     if(not _stop):
                         self.writer(_image_path,write_image)
                         print('finish one attack total_loss: %s weight: %s' % (_total_loss, _weight))
