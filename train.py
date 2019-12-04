@@ -605,7 +605,8 @@ class Classify(op_base):
         write_image = self.float2rgb(np.squeeze(write_image))
         image_combine_with_noise = os.path.join('data','result',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
-         
+    def init_stop(self):
+        self.stop_value = 0.
     def attack(self):
         ## restore and init
         # self.sess.run(tf.global_variables_initializer())
@@ -633,12 +634,15 @@ class Classify(op_base):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.stop_value],feed_dict = feed_dict)
                 if(not _stop):
+                    self.init_stop()
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s' %  _weight)
                     break 
                 if( i == 300):
-                    print('finish one attack  weight: %s' %  _weight)
+                    self.init_stop()
                     self.writer(_image_path,write_image)
+                    print('hard %s one attack  weight: %s' %  (_stop,_weight))
+                    
 
                 # if(i % 10 == 0):
                 #     _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
