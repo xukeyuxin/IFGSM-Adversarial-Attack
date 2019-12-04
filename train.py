@@ -650,40 +650,40 @@ class Classify(op_base):
                     print('hard %s one attack  weight: %s' %  (_stop,_weight))
                     self.sess.run(self.tf_assign_init())
 
-                # if(i % 10 == 0):
-                #     _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
-                #         train_op,
-                #         self.total_loss,
-                #         self.loss_weight,
-                #         self.stop_value,
-                #         self.target_cross_entropy_inception_v4,
-                #         self.label_cross_entropy_inception_v4,
-                #         self.target_cross_entropy_inception_v3,
-                #         self.label_cross_entropy_inception_v3,
-                #         self.target_cross_entropy_inception_res,
-                #         self.label_cross_entropy_inception_res,
-                #         self.target_cross_entropy_resnet_50,
-                #         self.label_cross_entropy_resnet_50,
-                #         self.target_cross_entropy_resnet_101,
-                #         self.label_cross_entropy_resnet_101,
-                #         self.target_cross_entropy_resnet_152,
-                #         self.label_cross_entropy_resnet_152
-                #         ],feed_dict = feed_dict)
-                #     print('stop value: %s' % _stop),
-                #     print('total_loss: %s' % _total_loss),
-                #     print('weight_fit: %s' % _weight)
-                #     print('v4_tar: %s' % _target_cross_entropy_inception_v4)
-                #     print('v4_lab: %s' % _label_cross_entropy_inception_v4)
-                #     print('v3_tar: %s' % _target_cross_entropy_inception_v3)
-                #     print('v3_lab: %s' % _label_cross_entropy_inception_v3)
-                #     print('v_res_tar: %s' % _target_cross_entropy_inception_res)
-                #     print('v_res_lab: %s' % _label_cross_entropy_inception_res)
-                #     print('res50_tar: %s' % _target_cross_entropy_resnet_50)
-                #     print('res50_lab: %s' % _label_cross_entropy_resnet_50)
-                #     print('res101_tar: %s' % _target_cross_entropy_resnet_101)
-                #     print('res101_lab: %s' % _label_cross_entropy_resnet_101)
-                #     print('res152_tar: %s' % _target_cross_entropy_resnet_152)
-                #     print('res152_lab: %s' % _label_cross_entropy_resnet_152)
+                if(i % 10 == 0):
+                    _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
+                        train_op,
+                        self.total_loss,
+                        self.loss_weight,
+                        self.stop_value,
+                        self.target_cross_entropy_inception_v4,
+                        self.label_cross_entropy_inception_v4,
+                        self.target_cross_entropy_inception_v3,
+                        self.label_cross_entropy_inception_v3,
+                        self.target_cross_entropy_inception_res,
+                        self.label_cross_entropy_inception_res,
+                        self.target_cross_entropy_resnet_50,
+                        self.label_cross_entropy_resnet_50,
+                        self.target_cross_entropy_resnet_101,
+                        self.label_cross_entropy_resnet_101,
+                        self.target_cross_entropy_resnet_152,
+                        self.label_cross_entropy_resnet_152
+                        ],feed_dict = feed_dict)
+                    print('stop value: %s' % _stop),
+                    print('total_loss: %s' % _total_loss),
+                    print('weight_fit: %s' % _weight)
+                    print('v4_tar: %s' % _target_cross_entropy_inception_v4)
+                    print('v4_lab: %s' % _label_cross_entropy_inception_v4)
+                    print('v3_tar: %s' % _target_cross_entropy_inception_v3)
+                    print('v3_lab: %s' % _label_cross_entropy_inception_v3)
+                    print('v_res_tar: %s' % _target_cross_entropy_inception_res)
+                    print('v_res_lab: %s' % _label_cross_entropy_inception_res)
+                    print('res50_tar: %s' % _target_cross_entropy_resnet_50)
+                    print('res50_lab: %s' % _label_cross_entropy_resnet_50)
+                    print('res101_tar: %s' % _target_cross_entropy_resnet_101)
+                    print('res101_lab: %s' % _label_cross_entropy_resnet_101)
+                    print('res152_tar: %s' % _target_cross_entropy_resnet_152)
+                    print('res152_lab: %s' % _label_cross_entropy_resnet_152)
 
     def train(self):
         self.data.load_fineune_data()
