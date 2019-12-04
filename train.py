@@ -636,6 +636,9 @@ class Classify(op_base):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s' %  _weight)
                     break 
+                if( i == 300):
+                    print('finish one attack  weight: %s' %  _weight)
+                    self.writer(_image_path,write_image)
 
                 # if(i % 10 == 0):
                 #     _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
