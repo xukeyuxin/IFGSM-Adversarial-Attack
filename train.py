@@ -31,7 +31,7 @@ class Classify(op_base):
         self.label_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
         self.index = tf.placeholder(tf.int32,shape = [])
-        self.stop_value = tf.placeholder(tf.float32, shape = [])
+        # self.stop_value = tf.placeholder(tf.float32, shape = [])
         self.gaussian_blur = GaussianBlur()
 
         attack = True if self.action == 'attack' else False
@@ -337,7 +337,7 @@ class Classify(op_base):
         # input_blur_images =  np.expand_dims(cv2.resize(cv2.resize(np.squeeze(input_image),(224,224)),(299,299)),0)
         # return {self.input_images:input_image,self.input_blur_images:input_blur_images,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index} 
         # return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
-        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index,self.stop_value:0.}
+        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index}
     def init_noise(self):
         ## init
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
@@ -444,8 +444,7 @@ class Classify(op_base):
                 loss_inception_v4 = r_inception_v4_tar * target_cross_entropy_inception_v4 - r_inception_v4_lab * label_cross_entropy_inception_v4
                 loss_total += loss_inception_v4 * alpha1
 
-                self.stop_value += r_inception_v4_tar
-                self.stop_value += r_inception_v4_lab
+
 
                 self.target_cross_entropy_inception_v4 = target_cross_entropy_inception_v4
                 self.label_cross_entropy_inception_v4 = label_cross_entropy_inception_v4
@@ -463,8 +462,7 @@ class Classify(op_base):
                 loss_inception_v3 = r_inception_v3_tar * target_cross_entropy_inception_v3 - r_inception_v3_lab * label_cross_entropy_inception_v3
                 loss_total += loss_inception_v3 * alpha2
 
-                self.stop_value += r_inception_v3_tar
-                self.stop_value += r_inception_v3_lab
+
 
                 self.target_cross_entropy_inception_v3 = target_cross_entropy_inception_v3
                 self.label_cross_entropy_inception_v3 = label_cross_entropy_inception_v3
@@ -484,8 +482,6 @@ class Classify(op_base):
                 loss_inception_res = r_inception_res_tar * target_cross_entropy_inception_res - r_inception_res_lab * label_cross_entropy_inception_res
                 loss_total += loss_inception_res * alpha3
 
-                self.stop_value += r_inception_res_tar
-                self.stop_value += r_inception_res_lab
 
                 self.target_cross_entropy_inception_res = target_cross_entropy_inception_res
                 self.label_cross_entropy_inception_res = label_cross_entropy_inception_res
@@ -498,13 +494,11 @@ class Classify(op_base):
                 label_cross_entropy_resnet_50 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_50)) 
 
                 r_res50_tar = large_alpha_r(logits_resnet_50)
-                # r_res50_tar = tf.cond( target_cross_entropy_resnet_50 < 0.1,lambda: 0.,lambda: 1.)
                 r_res50_lab = tf.cond( label_cross_entropy_resnet_50 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_50 = r_res50_tar * target_cross_entropy_resnet_50 - r_res50_lab * label_cross_entropy_resnet_50
                 loss_total += loss_resnet_50 * alpha4
 
-                self.stop_value += r_res50_tar
-                self.stop_value += r_res50_lab
+
 
                 self.target_cross_entropy_resnet_50 = target_cross_entropy_resnet_50
                 self.label_cross_entropy_resnet_50 = label_cross_entropy_resnet_50
@@ -517,13 +511,10 @@ class Classify(op_base):
                 label_cross_entropy_resnet_101 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_101)) 
 
                 r_res101_tar = large_alpha_r(logits_resnet_101)
-                # r_res101_tar = tf.cond( target_cross_entropy_resnet_101 < 0.1,lambda: 0.,lambda: 1.)
                 r_res101_lab = tf.cond( label_cross_entropy_resnet_101 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_101 = r_res101_tar * target_cross_entropy_resnet_101 - r_res101_lab * label_cross_entropy_resnet_101
                 loss_total += loss_resnet_101 * alpha5
 
-                self.stop_value += r_res101_tar
-                self.stop_value += r_res101_lab
 
                 self.target_cross_entropy_resnet_101 = target_cross_entropy_resnet_101
                 self.label_cross_entropy_resnet_101 = label_cross_entropy_resnet_101
@@ -537,17 +528,17 @@ class Classify(op_base):
                 label_cross_entropy_resnet_152 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_152)) 
                 
                 r_res152_tar = large_alpha_r(logits_resnet_152)
-                # r_res152_tar = tf.cond( target_cross_entropy_resnet_152 < 0.1,lambda: 0.,lambda: 1.)
                 r_res152_lab = tf.cond( label_cross_entropy_resnet_152 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_152 = r_res152_tar * target_cross_entropy_resnet_152 - r_res152_lab * label_cross_entropy_resnet_152
                 loss_total += loss_resnet_152 * alpha6
 
-                self.stop_value += r_res152_tar
-                self.stop_value += r_res152_lab
-
                 self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
                 self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
 
+
+        self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_v3_tar + r_inception_v3_lab + r_inception_res_tar + r_inception_res_lab
+        self.resnet_stop_value = r_res50_tar + r_res50_lab + r_res101_tar + r_res101_lab + r_res152_tar + r_res152_lab
+        self.mix_stop = self.inception_stop_value + self.resnet_stop_value
         #### logits
         # logits_base = self.model(self.combine_images)
         # logits_base_320_299 = self.model(self.combine_images_320_299)
@@ -638,7 +629,7 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in range(0,301):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.stop_value],feed_dict = feed_dict)
+                _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.mix_stop],feed_dict = feed_dict)
                 if( _stop <= 2):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s' %  _weight)
