@@ -344,6 +344,13 @@ class Classify(op_base):
         self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
         # self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(0.))
         self.v1_grad = tf.get_variable('noise_grad',shape = [1,299,299,3],initializer= tf.constant_initializer(grad_init))
+    def tf_assign_init(self):
+        self.stop_value = tf.constant(0.)
+        tmp_noise_init = self.xavier_initializer([1,299,299,3])
+        grad_init = tf.constant(0.)
+        update_tmp_noise = tf.assign(self.tmp_noise,tmp_noise_init)
+        update_v1_grad = tf.assign(self.v1_grad,grad_init)
+        return tf.group(update_tmp_noise,update_v1_grad)
 
     def tf_preprocess(self,img,lar_size,out_size):
         rawH = self.image_height
@@ -606,7 +613,7 @@ class Classify(op_base):
         image_combine_with_noise = os.path.join('data','result',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
     def init_stop(self):
-        self.stop_value = tf.constant(0.)
+        
     def attack(self):
         ## restore and init
         # self.sess.run(tf.global_variables_initializer())
@@ -634,15 +641,14 @@ class Classify(op_base):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.stop_value],feed_dict = feed_dict)
                 if( _stop <= 2):
-                    self.init_stop()
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s' %  _weight)
+                    self.sess.run(self.tf_assign_init())
                     break 
                 if( i == 300):
-                    self.init_stop()
                     self.writer(_image_path,write_image)
                     print('hard %s one attack  weight: %s' %  (_stop,_weight))
-                    
+                    self.sess.run(self.tf_assign_init())
 
                 # if(i % 10 == 0):
                 #     _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
