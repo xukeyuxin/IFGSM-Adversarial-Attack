@@ -426,8 +426,7 @@ class Classify(op_base):
         self.combine_images = tf.clip_by_value(self.input_images + tmp_noise,-1.,1.)
         with tf.control_dependencies([self.combine_images]):
             self.build_all_graph(self.combine_images)
-            
-        self.init_all_var()
+            self.init_all_var()
         loss_total = 0
         self.stop_value = 0.
         model_weight_length = len(self.model_list) + 3
