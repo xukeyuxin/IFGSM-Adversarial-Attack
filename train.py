@@ -606,7 +606,7 @@ class Classify(op_base):
         image_combine_with_noise = os.path.join('data','result',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
     def init_stop(self):
-        self.stop_value = 0.
+        self.stop_value = tf.constant(0.)
     def attack(self):
         ## restore and init
         # self.sess.run(tf.global_variables_initializer())
@@ -633,7 +633,7 @@ class Classify(op_base):
             for i in range(0,301):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.stop_value],feed_dict = feed_dict)
-                if(not _stop):
+                if( _stop <= 2):
                     self.init_stop()
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s' %  _weight)
