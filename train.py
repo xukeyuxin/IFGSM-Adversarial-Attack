@@ -347,7 +347,7 @@ class Classify(op_base):
     def tf_assign_init(self):
         self.stop_value = tf.constant(0.)
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
-        grad_init = tf.constant(0.)
+        grad_init = tf.constant(0.,shape = [1,299,299,3])
         update_tmp_noise = tf.assign(self.tmp_noise,tmp_noise_init)
         update_v1_grad = tf.assign(self.v1_grad,grad_init)
         return tf.group(update_tmp_noise,update_v1_grad)
@@ -612,7 +612,7 @@ class Classify(op_base):
         write_image = self.float2rgb(np.squeeze(write_image))
         image_combine_with_noise = os.path.join('data','result',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
-        
+
     def attack(self):
         ## restore and init
         # self.sess.run(tf.global_variables_initializer())
