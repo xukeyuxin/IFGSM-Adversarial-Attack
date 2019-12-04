@@ -612,67 +612,65 @@ class Classify(op_base):
         # self.saver.restore(self.sess, self.pre_model)
 
         train_op = self.attack_graph()
-        root_dir = os.path.join('data/feature')
-        attack_tasks = os.listdir(root_dir)
-        for item_index in tqdm(attack_tasks):
+        # root_dir = os.path.join('data/feature')
+        # attack_tasks = os.listdir(root_dir)
+        for _ in tqdm(range(1217)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
             print('start one attack image: %s' %  _image_path)
             label_np = np.array([int(_label)])
             target_np = np.array([int(_target)])
   
-            with open(os.path.join(root_dir,item_index,'single_label.pickle'),'rb') as f_single, open(os.path.join(root_dir,item_index,'target_best_feature.pickle'),'rb') as f_t:
+            # target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
+            # label_feature = self.normal_2(pickle.load(f_single)[1]) # (2048)
 
-                # target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
-                # label_feature = self.normal_2(pickle.load(f_single)[1]) # (2048)
+            label_input = self.data.make_label(label_np)
+            target_input = self.data.make_label(target_np)
 
-                label_input = self.data.make_label(label_np)
-                target_input = self.data.make_label(target_np)
+            _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
+            mask = np.ones([1,299,299,1])
+            print('start attack %s' % _image_path)
+            for i in range(0,301):
+                feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
+                _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.stop_value],feed_dict = feed_dict)
+                if(not _stop):
+                    self.writer(_image_path,write_image)
+                    print('finish one attack  weight: %s' %  _weight)
+                    break 
 
-                _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
-                mask = np.ones([1,299,299,1])
-                print('start attack %s' % _image_path)
-                for i in range(0,301):
-                    feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                    _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.stop_value],feed_dict = feed_dict)
-                    if(not _stop):
-                        self.writer(_image_path,write_image)
-                        print('finish one attack  weight: %s' %  _weight)
-                        break 
-
-                    if(i % 10 == 0):
-                        _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
-                            train_op,
-                            self.total_loss,
-                            self.loss_weight,
-                            self.stop_value,
-                            self.target_cross_entropy_inception_v4,
-                            self.label_cross_entropy_inception_v4,
-                            self.target_cross_entropy_inception_v3,
-                            self.label_cross_entropy_inception_v3,
-                            self.target_cross_entropy_inception_res,
-                            self.label_cross_entropy_inception_res,
-                            self.target_cross_entropy_resnet_50,
-                            self.label_cross_entropy_resnet_50,
-                            self.target_cross_entropy_resnet_101,
-                            self.label_cross_entropy_resnet_101,
-                            self.target_cross_entropy_resnet_152,
-                            self.label_cross_entropy_resnet_152
-                            ],feed_dict = feed_dict)
-                        print('stop value: %s' % _stop),
-                        print('total_loss: %s' % _total_loss),
-                        print('weight_fit: %s' % _weight)
-                        print('v4_tar: %s' % _target_cross_entropy_inception_v4)
-                        print('v4_lab: %s' % _label_cross_entropy_inception_v4)
-                        print('v3_tar: %s' % _target_cross_entropy_inception_v3)
-                        print('v3_lab: %s' % _label_cross_entropy_inception_v3)
-                        print('v_res_tar: %s' % _target_cross_entropy_inception_res)
-                        print('v_res_lab: %s' % _label_cross_entropy_inception_res)
-                        print('res50_tar: %s' % _target_cross_entropy_resnet_50)
-                        print('res50_lab: %s' % _label_cross_entropy_resnet_50)
-                        print('res101_tar: %s' % _target_cross_entropy_resnet_101)
-                        print('res101_lab: %s' % _label_cross_entropy_resnet_101)
-                        print('res152_tar: %s' % _target_cross_entropy_resnet_152)
-                        print('res152_lab: %s' % _label_cross_entropy_resnet_152)
+                # if(i % 10 == 0):
+                #     _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
+                #         train_op,
+                #         self.total_loss,
+                #         self.loss_weight,
+                #         self.stop_value,
+                #         self.target_cross_entropy_inception_v4,
+                #         self.label_cross_entropy_inception_v4,
+                #         self.target_cross_entropy_inception_v3,
+                #         self.label_cross_entropy_inception_v3,
+                #         self.target_cross_entropy_inception_res,
+                #         self.label_cross_entropy_inception_res,
+                #         self.target_cross_entropy_resnet_50,
+                #         self.label_cross_entropy_resnet_50,
+                #         self.target_cross_entropy_resnet_101,
+                #         self.label_cross_entropy_resnet_101,
+                #         self.target_cross_entropy_resnet_152,
+                #         self.label_cross_entropy_resnet_152
+                #         ],feed_dict = feed_dict)
+                #     print('stop value: %s' % _stop),
+                #     print('total_loss: %s' % _total_loss),
+                #     print('weight_fit: %s' % _weight)
+                #     print('v4_tar: %s' % _target_cross_entropy_inception_v4)
+                #     print('v4_lab: %s' % _label_cross_entropy_inception_v4)
+                #     print('v3_tar: %s' % _target_cross_entropy_inception_v3)
+                #     print('v3_lab: %s' % _label_cross_entropy_inception_v3)
+                #     print('v_res_tar: %s' % _target_cross_entropy_inception_res)
+                #     print('v_res_lab: %s' % _label_cross_entropy_inception_res)
+                #     print('res50_tar: %s' % _target_cross_entropy_resnet_50)
+                #     print('res50_lab: %s' % _label_cross_entropy_resnet_50)
+                #     print('res101_tar: %s' % _target_cross_entropy_resnet_101)
+                #     print('res101_lab: %s' % _label_cross_entropy_resnet_101)
+                #     print('res152_tar: %s' % _target_cross_entropy_resnet_152)
+                #     print('res152_lab: %s' % _label_cross_entropy_resnet_152)
 
     def train(self):
         self.data.load_fineune_data()
