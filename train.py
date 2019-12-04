@@ -612,7 +612,6 @@ class Classify(op_base):
         write_image = self.float2rgb(np.squeeze(write_image))
         image_combine_with_noise = os.path.join('data','result',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
-    def init_stop(self):
         
     def attack(self):
         ## restore and init
