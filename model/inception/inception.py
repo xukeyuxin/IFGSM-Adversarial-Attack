@@ -20,7 +20,7 @@ class inception(object):
         else:
             input = self.X
         with slim.arg_scope(arg_scope):
-            net, end_points = inception_v4(input, is_training=self.is_training)
+            net, end_points = inception_v4(input, is_training=self.is_training,reuse=tf.AUTO_REUSE)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('InceptionV4',reuse=tf.AUTO_REUSE):
                 # 8 x 8 x 1536
@@ -42,7 +42,7 @@ class inception(object):
         else:
             input = self.X
         with slim.arg_scope(arg_scope):
-            net, end_points = inception_v3(input, is_training=self.is_training)
+            net, end_points = inception_v3(input, is_training=self.is_training,reuse=tf.AUTO_REUSE)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('InceptionV3',reuse=tf.AUTO_REUSE):
                 # 8 x 8 x 2048
@@ -64,7 +64,7 @@ class inception(object):
         else:
             input = self.X
         with slim.arg_scope(arg_scope):
-            net, end_points = inception_resnet_v2(input, is_training=self.is_training)
+            net, end_points = inception_resnet_v2(input, is_training=self.is_training,reuse=tf.AUTO_REUSE)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('InceptionResnetV2',reuse=tf.AUTO_REUSE):
                 # 8 x 8 x 2080
