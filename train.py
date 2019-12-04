@@ -427,7 +427,7 @@ class Classify(op_base):
         # with tf.control_dependencies([self.combine_images]):
         self.build_all_graph(self.combine_images)
         self.init_all_var()
-        
+
         loss_total = 0
         self.stop_value = 0.
         model_weight_length = len(self.model_list) + 3
@@ -435,7 +435,7 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 2 / model_weight_length
-                logits_inception_v4 = self.inception_v4_model.logits
+                logits_inception_v4 = self.inception_v4_model.inception_v4(self.combine_images)
                 target_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v4)) 
                 label_cross_entropy_inception_v4 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v4)) 
 
@@ -454,7 +454,7 @@ class Classify(op_base):
             elif(item == 'inception_v3'):
                 ## inception3
                 alpha2 = 2 / model_weight_length
-                logits_inception_v3 = self.inception_v3_model.logits
+                logits_inception_v3 = self.inception_v3_model.inception_v3(self.combine_images)
                 target_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v3)) 
                 label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
 
@@ -473,7 +473,7 @@ class Classify(op_base):
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 2 / model_weight_length
-                logits_inception_res = self.inception_res_model.logits
+                logits_inception_res = self.inception_res_model.inception_res(self.combine_images)
                 target_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_res)) 
                 label_cross_entropy_inception_res = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_res))
 
@@ -494,7 +494,7 @@ class Classify(op_base):
             elif(item == 'resnet_50'):
                 ## resnet_50
                 alpha4 = 1 / model_weight_length
-                logits_resnet_50 = self.resnet_50_model.logits
+                logits_resnet_50 = self.resnet_50_model.resnet_50(self.combine_images)
                 target_cross_entropy_resnet_50= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_50)) 
                 label_cross_entropy_resnet_50 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_50)) 
 
@@ -513,7 +513,7 @@ class Classify(op_base):
             elif(item == 'resnet_101'):
                 ## resnet_101
                 alpha5 = 1 / model_weight_length
-                logits_resnet_101 = self.resnet_101_model.logits
+                logits_resnet_101 = self.resnet_101_model.resnet_101(self.combine_images)
                 target_cross_entropy_resnet_101= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_101)) 
                 label_cross_entropy_resnet_101 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_101)) 
 
@@ -533,7 +533,7 @@ class Classify(op_base):
             elif(item == 'resnet_152'):
                 ## resnet_152
                 alpha6 = 1 / model_weight_length
-                logits_resnet_152 = self.resnet_152_model.logits
+                logits_resnet_152 = self.resnet_152_model.resnet_152(self.combine_images)
                 target_cross_entropy_resnet_152= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_152)) 
                 label_cross_entropy_resnet_152 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_152)) 
                 

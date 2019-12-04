@@ -8,10 +8,14 @@ class resnet(object):
         self.X = image
         self.is_training = is_training
         # self.checkpoint_exclude_scopes = "Logits_out"
-    def resnet_50(self):
+    def resnet_50(self,input_image = None):
         arg_scope = resnet_arg_scope()
+        if(input_image is not None):
+            input = input_image
+        else:
+            input = self.X
         with slim.arg_scope(arg_scope):
-            net, end_points = resnet_v2_50(self.X, is_training=self.is_training)
+            net, end_points = resnet_v2_50(input, is_training=self.is_training)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('resnet_50'):
                 # net = slim.conv2d(net, 1000, [1, 1], activation_fn=None, normalizer_fn=None, scope='Logits_out0')
@@ -23,10 +27,14 @@ class resnet(object):
         self.logits = net
         return net
 
-    def resnet_152(self):
+    def resnet_152(self,input_image = None):
         arg_scope = resnet_arg_scope()
+        if(input_image is not None):
+            input = input_image
+        else:
+            input = self.X
         with slim.arg_scope(arg_scope):
-            net, end_points = resnet_v2_152(self.X, is_training=self.is_training)
+            net, end_points = resnet_v2_152(input, is_training=self.is_training)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('resnet_152'):
                 # net = slim.conv2d(net, 1000, [1, 1], activation_fn=None, normalizer_fn=None, scope='Logits_out0')
@@ -38,10 +46,14 @@ class resnet(object):
         self.logits = net
         return net
 
-    def resnet_101(self):
+    def resnet_101(self,input_image = None):
         arg_scope = resnet_arg_scope()
+        if(input_image is not None):
+            input = input_image
+        else:
+            input = self.X
         with slim.arg_scope(arg_scope):
-            net, end_points = resnet_v2_101(self.X, is_training=self.is_training)
+            net, end_points = resnet_v2_101(input, is_training=self.is_training)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('resnet_101'):
                 # net = slim.conv2d(net, 1000, [1, 1], activation_fn=None, normalizer_fn=None, scope='Logits_out0')
