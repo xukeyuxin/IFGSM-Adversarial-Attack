@@ -612,6 +612,7 @@ class Classify(op_base):
 
     def attack(self):
         train_op = self.attack_graph()
+        hard_writer = open('hard.txt','a+')
         for _ in tqdm(range(1217)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
             print('start one attack image: %s' %  _image_path)
@@ -627,13 +628,14 @@ class Classify(op_base):
             for i in range(0,301):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.mix_stop],feed_dict = feed_dict)
-                if( _stop <= 2):
+                if( _stop <= 1):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
                     self.sess.run(self.tf_assign_init())
                     break 
                 if( i == 300):
                     self.writer(_image_path,write_image)
+                    hard_writer.write(_image_path + '\n')
                     print('hard %s one attack  weight: %s' %  (_stop,_weight))
                     self.sess.run(self.tf_assign_init())
 
