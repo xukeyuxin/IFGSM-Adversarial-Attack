@@ -611,21 +611,12 @@ class Classify(op_base):
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
-        ## restore and init
-        # self.sess.run(tf.global_variables_initializer())
-        # self.saver.restore(self.sess, self.pre_model)
-
         train_op = self.attack_graph()
-        # root_dir = os.path.join('data/feature')
-        # attack_tasks = os.listdir(root_dir)
         for _ in tqdm(range(1217)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
             print('start one attack image: %s' %  _image_path)
             label_np = np.array([int(_label)])
             target_np = np.array([int(_target)])
-  
-            # target_feature = self.normal_2(pickle.load(f_t)) # (2048,)
-            # label_feature = self.normal_2(pickle.load(f_single)[1]) # (2048)
 
             label_input = self.data.make_label(label_np)
             target_input = self.data.make_label(target_np)
@@ -680,7 +671,7 @@ class Classify(op_base):
                 #     print('res101_lab: %s' % _label_cross_entropy_resnet_101)
                 #     print('res152_tar: %s' % _target_cross_entropy_resnet_152)
                 #     print('res152_lab: %s' % _label_cross_entropy_resnet_152)
-
+ 
     def train(self):
         self.data.load_fineune_data()
         data_generator = self.data.get_fineune_generator()
@@ -732,13 +723,24 @@ class Classify(op_base):
 
         logit = self.model.logits
         softmax = tf.nn.softmax(logit)
-        while True:
+        right = []
+        for _ in tqdm(range(1216)):
             _p,content,label,target = next(self.attack_generator)
+            target_index = int(label) - 1
             image_content = np.expand_dims(content,0)
             _softmax = self.sess.run(softmax,feed_dict = {self.input_images:image_content})
-            print(_p)
-            print(np.argsort(np.squeeze(_softmax))[-10:])
-            return 
+            pred = np.argsort(np.squeeze(_softmax))[-1]
+            if(pred == target_index):
+                right.append(_p)
+        # v3_old :1002 / 1216
+        # v3_new : 1153 / 1216
+        # v4_old :1129 / 1216
+        # v4_new : 1161 / 1216
+        # v_res_old :1184 / 1216
+        # v_res_new : / 1216
+        print(len(right))
+                
+             
 
     def eval_local(self):
         self.sess.run(tf.global_variables_initializer())
