@@ -447,14 +447,18 @@ class Classify(op_base):
         #     print(new_image)
         #     return new_image
 
-        def cell_graph(logit):
+        def cell_graph(logit,need_label_cross = True):
             target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logit)) 
-            label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
             r_restel_tar_base = large_alpha_r(logit)
-            r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
-            loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel - r_restel_lab_base * label_cross_entropy_resnet_tel
+            if(need_label_cross):
+                label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
+                r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
+                loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel - r_restel_lab_base * label_cross_entropy_resnet_tel
+                return loss_resnet_tel_base, r_restel_tar_base, r_restel_lab_base
+            else:
+                loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
+                return loss_resnet_tel_base, r_restel_tar_base
 
-            return loss_resnet_tel_base, r_restel_tar_base, r_restel_lab_base
 
             
         def item_graph(_model,newH = 299, test_crop = 299):
@@ -472,9 +476,9 @@ class Classify(op_base):
 
             rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
             bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
-            noise_loss, noise_stop_t, noise_stop_l = cell_graph(logits_resnet_tmp)
+            noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False)
 
-            return rgb_loss + bgr_loss + 0.1*noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
+            return rgb_loss + bgr_loss + 0.1*noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
 
 
 
@@ -509,7 +513,7 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(inception_v4_model.inception_v4)
+                _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4)
                 _loss_mix += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
 
