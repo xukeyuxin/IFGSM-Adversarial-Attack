@@ -442,9 +442,9 @@ class Classify(op_base):
             newW = newH
             # input = tf.squeeze(input)
             new_image = tf.image.resize_images(input,(newH,newH))
+            new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newW-test_crop)/2):int((newW-test_crop)/2)+int(test_crop)]
+            new_image = new_image.reshape([-1,test_crop,test_crop,3])
             print(new_image)
-            new_image = new_image[int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newW-test_crop)/2):int((newW-test_crop)/2)+int(test_crop)]
-            print(new_image.shape)
             return new_image
         def mask_gradient(grads,drop_probs = int(0.005 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
