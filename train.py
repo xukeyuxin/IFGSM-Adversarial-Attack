@@ -439,6 +439,7 @@ class Classify(op_base):
 
             
         def cut_320_299(input,newH = 320,test_crop = 299):
+            newW = newH
             new_image = tf.image.resize_images(input,(newH,newH))
             new_image = new_image[int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newW-test_crop)/2):int((newW-test_crop)/2)+int(test_crop)]
             print(new_image.shape)
