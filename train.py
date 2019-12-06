@@ -529,7 +529,7 @@ class Classify(op_base):
                 r_inception_v3_lab = tf.cond( label_cross_entropy_inception_v3 > 50.,lambda: 0.,lambda: 1.)
 
                 loss_inception_v3 = r_inception_v3_tar * target_cross_entropy_inception_v3 - r_inception_v3_lab * label_cross_entropy_inception_v3
-                loss_total += loss_inception_v3 * alpha2
+                _loss_total += loss_inception_v3 * alpha2
 
 
 
@@ -554,7 +554,7 @@ class Classify(op_base):
                 r_res50_tar = large_alpha_r(logits_resnet_50)
                 r_res50_lab = tf.cond( label_cross_entropy_resnet_50 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_50 = r_res50_tar * target_cross_entropy_resnet_50 - r_res50_lab * label_cross_entropy_resnet_50
-                loss_total += loss_resnet_50 * alpha4
+                _loss_total += loss_resnet_50 * alpha4
 
 
 
@@ -572,7 +572,7 @@ class Classify(op_base):
                 r_res101_tar = large_alpha_r(logits_resnet_101)
                 r_res101_lab = tf.cond( label_cross_entropy_resnet_101 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_101 = r_res101_tar * target_cross_entropy_resnet_101 - r_res101_lab * label_cross_entropy_resnet_101
-                loss_total += loss_resnet_101 * alpha5
+                _loss_total += loss_resnet_101 * alpha5
 
 
                 self.target_cross_entropy_resnet_101 = target_cross_entropy_resnet_101
@@ -590,7 +590,7 @@ class Classify(op_base):
                 r_res152_tar = large_alpha_r(logits_resnet_152)
                 r_res152_lab = tf.cond( label_cross_entropy_resnet_152 > 50.,lambda: 0.,lambda: 1.)
                 loss_resnet_152 = r_res152_tar * target_cross_entropy_resnet_152 - r_res152_lab * label_cross_entropy_resnet_152
-                loss_total += loss_resnet_152 * alpha6
+                _loss_total += loss_resnet_152 * alpha6
 
                 self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
                 self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
@@ -628,7 +628,7 @@ class Classify(op_base):
         # alpha2 = tf.cast(tf.cond(loss_feat_2 > 0.7,lambda: 0.1,lambda: 5.), tf.float32)
         # loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
 
-        feat_grad = tf.gradients(ys = loss_total,xs = self.tmp_noise)[0] ## (299,299,3)
+        feat_grad = tf.gradients(ys = _loss_total,xs = self.tmp_noise)[0] ## (299,299,3)
 
         loss1_grad = feat_grad * (1 - momentum) + self.v1_grad * momentum
         # loss1_v = feat_grad * (1 - momentum) + old_grad * momentum
@@ -659,7 +659,7 @@ class Classify(op_base):
         update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
         # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
 
-        self.total_loss = loss_total
+        self.total_loss = _loss_total
         self.loss_weight = loss_l2
 
         # _noise,_feat_1,_feat_2,_weight = self.sess.run([update_noise,self.loss_feat_1,self.loss_feat_2,self.loss_weight],feed_dict = {self.input_images:_image_content})
