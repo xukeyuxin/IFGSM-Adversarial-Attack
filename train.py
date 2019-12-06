@@ -461,7 +461,7 @@ class Classify(op_base):
 
 
             
-        def item_graph(_model,newH = 299, test_crop = 299):
+        def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
             if(newH != 299):
                 new_image = tf.image.resize_images(self.input_images,(newH,newH))
@@ -470,15 +470,18 @@ class Classify(op_base):
             else:
                 new_image = self.input_images
             # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
-            logits_resnet_tel_base= _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.))
-            logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
-            logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
-
+            logits_resnet_tel_base = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.))
             rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
-            bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
-            noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False)
+            if(need_change_channel_noise):
+                logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
+                logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
+                bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
+                noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False)
+                return rgb_loss + bgr_loss + 0.1*noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
+            else:
+                return rgb_loss , rgb_stop_t , rgb_stop_l
 
-            return rgb_loss + bgr_loss + 0.1*noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
+                
 
 
 
@@ -597,7 +600,7 @@ class Classify(op_base):
 
             elif(item == 'resnet_tel'):
                 alpha7 = 4 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.resnet_tel_model)
+                _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
                 _loss_total += _loss * alpha7
                 _stop_mix += (stop_t + stop_l)
 
