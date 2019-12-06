@@ -629,7 +629,7 @@ class Classify(op_base):
 
 
         self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_res_tar + r_inception_res_lab
-        self.resnet_stop_value = r_restel_tar_base + r_restel_lab_base + r_restel_tar_change_channels + r_restel_lab_change_channels + _stop_mix
+        self.resnet_stop_value = _stop_mix
         # self.mix_stop = self.inception_stop_value + self.resnet_stop_value
         self.mix_stop = self.inception_stop_value + self.resnet_stop_value
 
