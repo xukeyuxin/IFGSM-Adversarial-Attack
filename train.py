@@ -457,12 +457,13 @@ class Classify(op_base):
 
                 return loss_resnet_tel_base, r_restel_tar_base, r_restel_lab_base
 
-                
-
-            new_image = tf.image.resize_images(self.input_images,(newH,newH))
-            new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop)]
-            new_image = tf.reshape(new_image,[1,test_crop,test_crop,3])
-
+            
+            if(newH != 299):
+                new_image = tf.image.resize_images(self.input_images,(newH,newH))
+                new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop)]
+                new_image = tf.reshape(new_image,[1,test_crop,test_crop,3])
+            else:
+                new_image = self.input_images
             # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             logits_resnet_tel_base= self.resnet_tel_model(tf.clip_by_value(new_image + tmp_noise,-1.,1.))
             logits_resnet_tel_bgr = self.resnet_tel_model(tf.clip_by_value(new_image[...,::-1] + tmp_noise,-1.,1.))
@@ -617,10 +618,17 @@ class Classify(op_base):
                 alpha7 = 3 / model_weight_length
 
                 _stop_mix = 0.
-                for newH in range(300,500,50):
-                    _loss,stop_t,stop_l = change_size_graph(newH)
-                    _loss_mix += _loss * alpha7
-                    _stop_mix += (stop_t + stop_l)
+                _loss,stop_t,stop_l = change_size_graph(299)
+                _loss_mix += _loss * alpha7
+                _stop_mix += (stop_t + stop_l)
+
+                _loss,stop_t,stop_l = change_size_graph(400)
+                _loss_mix += _loss * alpha7
+                _stop_mix += (stop_t + stop_l)
+
+                _loss,stop_t,stop_l = change_size_graph(500)
+                _loss_mix += _loss * alpha7
+                _stop_mix += (stop_t + stop_l)
 
                 loss_total += _loss_mix
 
