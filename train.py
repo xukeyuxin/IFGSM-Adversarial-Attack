@@ -447,23 +447,30 @@ class Classify(op_base):
             print(new_image)
             return new_image
 
-        def change_size_graph(new_H = 320, test_crop = 299):
+        def change_size_graph(newH = 320, test_crop = 299):
+            def cell_graph(logit):
+                target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logit)) 
+                label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
+                r_restel_tar_base = large_alpha_r(logit)
+                r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
+                loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel - r_restel_lab_base * label_cross_entropy_resnet_tel
+
+                return loss_resnet_tel_base, r_restel_tar_base, r_restel_lab_base
+
+                
+
             new_image = tf.image.resize_images(self.input_images,(newH,newH))
             new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop)]
             new_image = tf.reshape(new_image,[1,test_crop,test_crop,3])
-            print(new_image.shape)
-            new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
-            logits_resnet_tel_change_size = self.resnet_tel_model(new_image)
 
-            target_cross_entropy_resnet_tel_size = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel_change_size)) 
-            label_cross_entropy_resnet_tel_size  = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel_change_size)) 
-            
-            r_restel_tar_size = large_alpha_r(logits_resnet_tel_change_size)
-            r_restel_lab_size = tf.cond( label_cross_entropy_resnet_tel_size > 50.,lambda: 0.,lambda: 1.)
+            # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
+            logits_resnet_tel_base= self.resnet_tel_model(tf.clip_by_value(new_image + tmp_noise,-1.,1.))
+            logits_resnet_tel_bgr = self.resnet_tel_model(tf.clip_by_value(new_image[...,::-1] + tmp_noise,-1.,1.))
 
-            loss_resnet_tel_change_size = r_restel_tar_size * target_cross_entropy_resnet_tel_size - r_restel_lab_size * label_cross_entropy_resnet_tel_size
+            rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
+            bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
 
-            return loss_resnet_tel_change_size, r_restel_tar_size, r_restel_lab_size
+            return rgb_loss + bgr_loss, rgb_stop_t + bgr_stop_t, rgb_stop_l + bgr_stop_l
 
 
 
@@ -609,30 +616,8 @@ class Classify(op_base):
                 _loss_mix = 0.
                 alpha7 = 3 / model_weight_length
 
-                logits_resnet_tel_base = self.resnet_tel_model(self.combine_images)
-                logits_resnet_tel_change_channels = self.resnet_tel_model(self.combine_images_change_channels)
-                # logits_resnet_tel_change_size = self.resnet_tel_model(self.combine_images_change_size)
-                
-                target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel_base)) 
-                label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel_base)) 
-                
-                target_cross_entropy_resnet_tel_channels= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel_change_channels)) 
-                label_cross_entropy_resnet_tel_channels = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel_change_channels)) 
-                
-
-                r_restel_tar_base = large_alpha_r(logits_resnet_tel_base)
-                r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
-
-                r_restel_tar_change_channels = large_alpha_r(logits_resnet_tel_change_channels)
-                r_restel_lab_change_channels = tf.cond( label_cross_entropy_resnet_tel_channels > 50.,lambda: 0.,lambda: 1.)
-
-
-                loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel - r_restel_lab_base * label_cross_entropy_resnet_tel
-                loss_resnet_tel_change_channel= r_restel_tar_change_channels * target_cross_entropy_resnet_tel_channels - r_restel_lab_change_channels * label_cross_entropy_resnet_tel_channels
-                
-                _loss_mix += (loss_resnet_tel_base + loss_resnet_tel_change_channel) * alpha7
                 _stop_mix = 0.
-                for newH in range(300,400,10):
+                for newH in range(300,500,50):
                     _loss,stop_t,stop_l = change_size_graph(newH)
                     _loss_mix += _loss * alpha7
                     _stop_mix += (stop_t + stop_l)
