@@ -506,15 +506,15 @@ class Classify(op_base):
         self.build_all_graph(self.input_images)
         self.init_all_var()
 
-        loss_total = 0
-        _loss_mix = 0.
+        _loss_total = 0
+        _stop_mix = 0.
         model_weight_length = len(self.model_list) + 3
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4)
-                _loss_mix += _loss * alpha1
+                _loss_total += _loss * alpha1
                 _stop_mix += (stop_t + stop_l)
 
             elif(item == 'inception_v3'):
@@ -540,7 +540,7 @@ class Classify(op_base):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res)
-                _loss_mix += _loss * alpha3
+                _loss_total += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
 
             elif(item == 'resnet_50'):
@@ -598,7 +598,7 @@ class Classify(op_base):
             elif(item == 'resnet_tel'):
                 alpha7 = 4 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.resnet_tel_model)
-                loss_total += _loss * alpha7
+                _loss_total += _loss * alpha7
                 _stop_mix += (stop_t + stop_l)
 
         # self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_res_tar + r_inception_res_lab
