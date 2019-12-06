@@ -514,7 +514,7 @@ class Classify(op_base):
                 ## inception4
                 alpha1 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4)
-                _loss_mix += _loss * alpha3
+                _loss_mix += _loss * alpha1
                 _stop_mix += (stop_t + stop_l)
 
             elif(item == 'inception_v3'):
