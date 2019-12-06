@@ -509,7 +509,7 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_v4_model)
+                _loss,stop_t,stop_l = item_graph(inception_v4_model.inception_v4)
                 _loss_mix += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
 
@@ -535,7 +535,7 @@ class Classify(op_base):
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_res_model)
+                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res)
                 _loss_mix += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
 
