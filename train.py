@@ -448,9 +448,11 @@ class Classify(op_base):
             return new_image
 
         def change_size_graph(new_H = 320, test_crop = 299):
-            new_image = tf.image.resize_images(input,(newH,newH))
-            new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newW-test_crop)/2):int((newW-test_crop)/2)+int(test_crop)]
+            new_image = tf.image.resize_images(self.input_images,(newH,newH))
+            print(new_image.shape)
+            new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop)]
             new_image = tf.reshape(new_image,[-1,test_crop,test_crop,3])
+            print(new_image.shape)
             new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             logits_resnet_tel_change_size = self.resnet_tel_model(new_image)
 
