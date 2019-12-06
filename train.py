@@ -22,7 +22,8 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
+        # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
+        self.model_list = ['inception_v4','inception_res','resnet_tel']
         # self.model_list = ['inception_v4']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
@@ -437,8 +438,11 @@ class Classify(op_base):
             return r
 
             
-
-
+        def cut_320_299(input,newH = 320.,test_crop = 299.):
+            new_image = tf.image.resize_images(input,(newH,newH))
+            new_image = new_image[int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newW-test_crop)/2):int((newW-test_crop)/2)+int(test_crop)]
+            print(new_image.shape)
+            return new_image
         def mask_gradient(grads,drop_probs = int(0.005 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
             grads_flatten = tf.reshape(grads,flatten_shape)
@@ -457,12 +461,14 @@ class Classify(op_base):
         ### softmax loss
         tmp_noise = self.pre_noise(self.mask)
         self.combine_images = tf.clip_by_value(self.input_images + tmp_noise,-1.,1.)
+        self.combine_images_change_channels = tf.clip_by_value(self.input_images[...,::-1] + tmp_noise,-1.,1.)
+        self.combine_images_change_size = tf.clip_by_value( cut_320_299(self.input_images) + tmp_noise,-1.,1.)
         # with tf.control_dependencies([self.combine_images]):
-        self.build_all_graph(self.combine_images)
+        self.build_all_graph(self.input_images)
         self.init_all_var()
 
         loss_total = 0
-        model_weight_length = len(self.model_list) + 5
+        model_weight_length = len(self.model_list) + 4
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
@@ -577,23 +583,44 @@ class Classify(op_base):
             elif(item == 'resnet_tel'):
                 ## resnet_tel
                 alpha7 = 3 / model_weight_length
-                logits_resnet_tel = self.resnet_tel_model(self.combine_images)
-                target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel)) 
-                label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel)) 
+                logits_resnet_tel_base = self.resnet_tel_model(self.combine_images)
+                logits_resnet_tel_change_channels = self.resnet_tel_model(self.combine_images_change_channels)
+                logits_resnet_tel_change_size = self.resnet_tel_model(self.combine_images_change_size)
                 
-                r_restel_tar = large_alpha_r(logits_resnet_tel)
-                r_restel_lab = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
-                loss_resnet_tel = r_restel_tar * target_cross_entropy_resnet_tel - r_restel_lab * label_cross_entropy_resnet_tel
-                loss_total += loss_resnet_tel * alpha7
+                target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel_base)) 
+                label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel_base)) 
+                
+                target_cross_entropy_resnet_tel_channels= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel_change_channels)) 
+                label_cross_entropy_resnet_tel_channels = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel_change_channels)) 
+                
+                target_cross_entropy_resnet_tel_size = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel_change_size)) 
+                label_cross_entropy_resnet_tel_size  = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel_change_size)) 
+                
+                r_restel_tar_base = large_alpha_r(logits_resnet_tel_base)
+                r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
+
+                r_restel_tar_change_channels = large_alpha_r(logits_resnet_tel_change_channels)
+                r_restel_lab_change_channels = tf.cond( label_cross_entropy_resnet_tel_channels > 50.,lambda: 0.,lambda: 1.)
+
+                r_restel_tar_size = large_alpha_r(logits_resnet_tel_change_size)
+                r_restel_lab_size = tf.cond( label_cross_entropy_resnet_tel_size > 50.,lambda: 0.,lambda: 1.)
+
+                loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel - r_restel_lab_base * label_cross_entropy_resnet_tel
+                loss_resnet_tel_change_channel= r_restel_tar_change_channels * target_cross_entropy_resnet_tel_channels - r_restel_lab_change_channels * label_cross_entropy_resnet_tel_channels
+                loss_resnet_tel_change_size = r_restel_tar_size * target_cross_entropy_resnet_tel_size - r_restel_lab_size * label_cross_entropy_resnet_tel_size
+
+                loss_total += (loss_resnet_tel_base + loss_resnet_tel_change_channel + loss_resnet_tel_change_size) * alpha7
 
                 # self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
                 # self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
 
 
-        self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_v3_tar + r_inception_v3_lab + r_inception_res_tar + r_inception_res_lab
-        self.resnet_stop_value = r_res50_tar + r_res50_lab + r_res101_tar + r_res101_lab + r_res152_tar + r_res152_lab + r_restel_tar + r_restel_lab
+        self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_res_tar + r_inception_res_lab
+        self.resnet_stop_value = r_restel_tar_base + r_restel_lab_base + r_restel_tar_change_channels + r_restel_lab_change_channels + r_restel_tar_size + r_restel_lab_size
+        # self.mix_stop = self.inception_stop_value + self.resnet_stop_value
         self.mix_stop = self.inception_stop_value + self.resnet_stop_value
-        # ### logits
+
+        # # ### logits
 
         # logits_base = self.model(self.combine_images)
         # logits_base_320_299 = self.model(self.combine_images_320_299)
@@ -627,8 +654,8 @@ class Classify(op_base):
         r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
-        loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        # loss_weight = r3 * 0.025 * loss_l2 
+        # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
+        loss_weight = r3 * 0.025 * loss_l2 
 
         finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
         
