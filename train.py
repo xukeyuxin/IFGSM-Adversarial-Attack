@@ -2,6 +2,7 @@ import tensorflow as tf
 from model.inception.inception import inception
 from model.vgg.vgg_16 import VGG16
 from model.resnet.resnet import resnet
+from model.resnet_telent import ResNet
 import numpy as np
 from functools import reduce
 import json
@@ -21,7 +22,7 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152']
+        self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
@@ -94,6 +95,27 @@ class Classify(op_base):
                 self.variables_to_restore, self.variables_to_train = self.model.get_train_restore_vars()
                 self.saver = tf.train.Saver(self.variables_to_restore)
                 self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+
+            elif(self.model_type == 'resnet_tel'):
+                self.model = ResNet(self.input_images,is_training = is_training)
+                self.model()
+                self.pre_model = 'model/resnet_tel/resnet_tel.ckpt'
+                self.init_model()
+                
+                variables_to_restore = self.model.get_restore_variable()
+                print(len(variables_to_restore))
+                # print()
+                self.saver = tf.train.Saver(variables_to_restore)
+
+                # self.saver_store = tf.train.Saver(self.variables_to_restore + self.variables_to_train,max_to_keep = 1)
+
+                # self.resnet_tel_model = ResNet(input,is_training = False)
+                # self.resnet_tel_model()
+                # self.resnet_tel_pre_model = 'model/resnet_tel/resnet.ckpt'
+                
+                # self.saver = tf.train.Saver(variables_to_restore)
+                # self.resnet_tel_saver = tf.train.Saver(variables_to_restore)
+
 
             elif(self.model_type == 'resnet_50'):
                 self.model = resnet(self.input_images,is_training = is_training)
@@ -172,6 +194,15 @@ class Classify(op_base):
                 self.inception_res_pre_model = 'model/inception/model/inception_res/inception_res.ckpt'
                 variables_to_restore = self.inception_res_model.get_train_restore_vars('InceptionResnetV2')[0]
                 self.inception_res_saver = tf.train.Saver(variables_to_restore)
+
+            elif(item == 'resnet_tel'):
+                self.resnet_tel_model = ResNet(input,is_training = False)
+                self.resnet_tel_model()
+                self.resnet_tel_pre_model = 'model/resnet_tel/resnet_tel.ckpt'
+                variables_to_restore = self.resnet_tel_model.get_restore_variable()
+                self.saver = tf.train.Saver(variables_to_restore)
+                self.resnet_tel_saver = tf.train.Saver(variables_to_restore)
+
             elif(item == 'resnet_50'):
                 self.resnet_50_model = resnet(input,is_training = False)
                 self.resnet_50_model.resnet_50()
@@ -211,6 +242,8 @@ class Classify(op_base):
                 self.inception_res_saver.restore(self.sess,self.inception_res_pre_model)
             elif(item == 'resnet_50'):
                 self.resnet_50_saver.restore(self.sess,self.resnet_50_pre_model)
+            elif(item == 'resnet_tel'):
+                self.resnet_tel_saver.restore(self.sess,self.resnet_tel_pre_model)
             elif(item == 'resnet_101'):
                 self.resnet_101_saver.restore(self.sess,self.resnet_101_pre_model)
             elif(item == 'resnet_152'):
@@ -429,7 +462,7 @@ class Classify(op_base):
         self.init_all_var()
 
         loss_total = 0
-        model_weight_length = len(self.model_list) + 3
+        model_weight_length = len(self.model_list) + 5
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
@@ -541,11 +574,27 @@ class Classify(op_base):
                 self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
                 self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
 
+            elif(item == 'resnet_tel'):
+                ## resnet_tel
+                alpha7 = 3 / model_weight_length
+                logits_resnet_tel = self.resnet_tel_model(self.combine_images)
+                target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_tel)) 
+                label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_tel)) 
+                
+                r_restel_tar = large_alpha_r(logits_resnet_tel)
+                r_restel_lab = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
+                loss_resnet_tel = r_restel_tar * target_cross_entropy_resnet_tel - r_restel_lab * label_cross_entropy_resnet_tel
+                loss_total += loss_resnet_tel * alpha7
+
+                # self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
+                # self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
+
 
         self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_v3_tar + r_inception_v3_lab + r_inception_res_tar + r_inception_res_lab
-        self.resnet_stop_value = r_res50_tar + r_res50_lab + r_res101_tar + r_res101_lab + r_res152_tar + r_res152_lab
+        self.resnet_stop_value = r_res50_tar + r_res50_lab + r_res101_tar + r_res101_lab + r_res152_tar + r_res152_lab + r_restel_tar + r_restel_lab
         self.mix_stop = self.inception_stop_value + self.resnet_stop_value
-        #### logits
+        # ### logits
+
         # logits_base = self.model(self.combine_images)
         # logits_base_320_299 = self.model(self.combine_images_320_299)
         # logits_blur = self.model(self.combine_images_blur)
@@ -557,7 +606,7 @@ class Classify(op_base):
         # blur_320_299_loss = entropy_loss(logits_blur_320_299)
         # loss_total = base_loss + base_320_299_loss + blur_loss + blur_320_299_loss
 
-        #### feature
+        # ### feature
         # with_noise_feat = self.tensor_normal_2(self.model(combine_images))
         # loss_feat_1 = tf.reduce_sum(self.label_feature * with_noise_feat) 
         # loss_feat_2 = tf.reduce_sum(self.target_feature * with_noise_feat)
@@ -722,7 +771,7 @@ class Classify(op_base):
     def eval(self):
         self.sess.run(tf.global_variables_initializer())
         self.saver.restore(self.sess, self.pre_model)
-
+        print(self.pre_model)
         logit = self.model.logits
         softmax = tf.nn.softmax(logit)
         right = []
@@ -732,7 +781,11 @@ class Classify(op_base):
             image_content = np.expand_dims(content,0)
             _softmax = self.sess.run(softmax,feed_dict = {self.input_images:image_content})
             pred = np.argsort(np.squeeze(_softmax))[-1]
+            print(target_index)
+            print(pred)
+            print('-------------')
             if(pred == target_index):
+                print(pred)
                 right.append(_p)
         # v3_old :1002 / 1216
         # v3_new : 1153 / 1216

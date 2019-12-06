@@ -7,6 +7,7 @@ model/resnet/pretrain
 model/vgg/model
 model/vgg/pretrain
 model/alexnet
+model/resnet_tel
 eval
 logs
 logs_res

@@ -40,49 +40,51 @@ class ResNet(object):
     #   self.image_with_noise = image_with_noise
     # if self.data_format == "NCHW":  
     #   self.images = tf.transpose(images, [0, 3, 1, 2])
-
-  def __call__(self,image = None,get_feature = True):
+  def get_restore_variable(self):
+    return [ var for var in tf.global_variables() if var.op.name.startswith('resnet_tel') ]
+  def __call__(self,input_image = None,get_feature = True):
     # Initial net
-    with tf.variable_scope('init',reuse = tf.AUTO_REUSE):
-      if(image is not None):
-        x = image
-      else:
-        x = self.images
-      x = self._pre_padding_conv('init_conv', x, 7, 64, 2)
+    with tf.variable_scope('resnet_tel',reuse = tf.AUTO_REUSE):
+      with tf.variable_scope('init',reuse = tf.AUTO_REUSE):
+        if(input_image is not None):
+            x = input_image
+        else:
+            x = self.images
+        x = self._pre_padding_conv('init_conv', x, 7, 64, 2)
 
-    # 4 stages 
-    for i in range(0, len(self.stages)):
-      with tf.variable_scope('stages_%d_block_%d' % (i,0),reuse = tf.AUTO_REUSE):
-        x = self._bottleneck_residual(
-              x, 
-              self.filters[i], 
-              self.strides[i], 
-              'conv',
-              self.is_training)
-      for j in range(1, self.stages[i]):
-        with tf.variable_scope('stages_%d_block_%d' % (i,j),reuse = tf.AUTO_REUSE):
+      # 4 stages 
+      for i in range(0, len(self.stages)):
+        with tf.variable_scope('stages_%d_block_%d' % (i,0),reuse = tf.AUTO_REUSE):
           x = self._bottleneck_residual(
                 x, 
                 self.filters[i], 
-                1,
-                'identity', 
+                self.strides[i], 
+                'conv',
                 self.is_training)
-    
-    # class wise avg pool
-    with tf.variable_scope('global_pool',reuse = tf.AUTO_REUSE):
-      x = self._batch_norm('bn', x, self.is_training)
-      x = self._relu(x)
-      x = self._global_avg_pool(x)
+        for j in range(1, self.stages[i]):
+          with tf.variable_scope('stages_%d_block_%d' % (i,j),reuse = tf.AUTO_REUSE):
+            x = self._bottleneck_residual(
+                  x, 
+                  self.filters[i], 
+                  1,
+                  'identity', 
+                  self.is_training)
+      
+      # class wise avg pool
+      with tf.variable_scope('global_pool',reuse = tf.AUTO_REUSE):
+        x = self._batch_norm('bn', x, self.is_training)
+        x = self._relu(x)
+        x = self._global_avg_pool(x)
 
 
-    # extract features
-    self.feat=x
-    
-    # logits
-    with tf.variable_scope("logits",reuse = tf.AUTO_REUSE):
-      x = self._fully_connected(x, out_dim=self.num_classes)
-      self.logits = x
-    return x
+      # extract features
+      self.feat=x
+      
+      # logits
+      with tf.variable_scope("logits",reuse = tf.AUTO_REUSE):
+        x = self._fully_connected(x, out_dim=self.num_classes)
+        self.logits = x
+      return x
 
 
   def _bottleneck_residual(self, x, out_channel, strides, _type, is_training = False):
