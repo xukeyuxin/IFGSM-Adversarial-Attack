@@ -633,7 +633,7 @@ class Classify(op_base):
                 _stop_mix = 0.
                 for newH in range(300,400,10):
                     _loss,stop_t,stop_l = change_size_graph(newH)
-                    _loss_mix += _loss
+                    _loss_mix += _loss * alpha7
                     _stop_mix += (stop_t,stop_l)
 
                 loss_total += _loss_mix
