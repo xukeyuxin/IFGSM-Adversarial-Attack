@@ -722,20 +722,14 @@ class Classify(op_base):
 
                 if(i % 10 == 0):
                     # _inception_res_loss,_inception_res_stop_t,_inception_res_stop_l,_resnet_tel_loss
-                    _, _total_loss,_weight,_stop,_inception_v4_loss_0,_inception_v4_loss_1,_inception_v4_loss_2,_inception_v4_stop_t_0,_inception_v4_stop_t_1,_inception_v4_stop_t_2,_inception_v4_stop_l_0,_inception_v4_stop_l_1,_inception_v4_stop_l_2 = self.sess.run([
+                    _, _total_loss,_weight,_stop,_inception_v4_stop_mix,_inception_res_stop_mix,_inception_tel_stop_mix = self.sess.run([
                         train_op,
                         self.total_loss,
                         self.loss_weight,
                         self.mix_stop,
-                        self.inception_v4_loss_0,
-                        self.inception_v4_loss_1,
-                        self.inception_v4_loss_2,
-                        self.inception_v4_stop_t_0,
-                        self.inception_v4_stop_t_1,
-                        self.inception_v4_stop_t_2,
-                        self.inception_v4_stop_l_0,
-                        self.inception_v4_stop_l_1,
-                        self.inception_v4_stop_l_2,
+                        self.inception_v4_stop_mix,
+                        self.inception_res_stop_mix,
+                        self.inception_tel_stop_mix,
                         # self.inception_res_loss,
                         # self.inception_res_stop_t,
                         # self.inception_res_stop_l,
@@ -744,15 +738,9 @@ class Classify(op_base):
                     print('stop value: %s' % _stop),
                     print('total_loss: %s' % _total_loss),
                     print('weight_fit: %s' % _weight)
-                    print('v4_tar: %s' % _inception_v4_loss_0)
-                    print('v4_tar: %s' % _inception_v4_loss_1)
-                    print('v4_tar: %s' % _inception_v4_loss_2)
-                    print('v4_s_t: %s' % _inception_v4_stop_t_0)
-                    print('v4_s_t: %s' % _inception_v4_stop_t_1)
-                    print('v4_s_t: %s' % _inception_v4_stop_t_2)
-                    print('v4_s_l: %s' % _inception_v4_stop_l_0)
-                    print('v4_s_l: %s' % _inception_v4_stop_l_1)
-                    print('v4_s_l: %s' % _inception_v4_stop_l_2)
+                    print('v4_tar: %s' % _inception_v4_stop_mix)
+                    print('v4_tar: %s' % _inception_res_stop_mix)
+                    print('v4_tar: %s' % _inception_tel_stop_mix)
 
                     # print('v_res_tar: %s' % _inception_res_loss)
                     # print('v4_res_t: %s' % _inception_res_stop_t)
