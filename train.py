@@ -485,7 +485,7 @@ class Classify(op_base):
                 logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
                 noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
 
-                return rgb_loss + 1. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
+                return rgb_loss + 2. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
                 # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
 
             else:
@@ -689,7 +689,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_no_channel',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test_no_channel_noise2',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
@@ -707,10 +707,10 @@ class Classify(op_base):
             _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
             print('start attack %s' % _image_path)
-            for i in tqdm(range(0,301)):
+            for i in tqdm(range(0,101)):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
-                # print(_loss)
+                print(_loss)
                 if( _loss <= -50.):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
