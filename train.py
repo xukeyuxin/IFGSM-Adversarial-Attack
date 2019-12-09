@@ -484,11 +484,11 @@ class Classify(op_base):
 
                 logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
                 noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
-                return (rgb_loss,rgb_stop_t,rgb_stop_l) , (bgr_loss,bgr_stop_t,bgr_stop_l), (1. * noise_loss, noise_stop_t, noise_stop_l)
-                # rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
+                # return (rgb_loss,rgb_stop_t,rgb_stop_l) , (bgr_loss,bgr_stop_t,bgr_stop_l), (1. * noise_loss, noise_stop_t, noise_stop_l)
+                return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
 
             else:
-                return (rgb_loss , rgb_stop_t , rgb_stop_l)
+                return rgb_loss , rgb_stop_t , rgb_stop_l
 
                 
 
@@ -525,25 +525,11 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
-                # _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4,need_change_channel_noise = True)
-                base_1,base_2,base_3 = item_graph(self.inception_v4_model.inception_v4,need_change_channel_noise = True)
-                _loss = base_1[0] + base_2[0] + base_3[0]
-                stop_t = base_1[1] + base_2[1] + base_3[1]
-                stop_l = base_1[2] + base_2[2] + base_3[2]
+                _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4,need_change_channel_noise = True)
 
                 _loss_total += _loss * alpha1
                 _stop_mix += (stop_t + stop_l)
-                self.inception_v4_stop_t_0 = base_1[1]
-                self.inception_v4_stop_t_1 = base_2[1]
-                self.inception_v4_stop_t_2 = base_3[1]
-
-                self.inception_v4_stop_l_0 = base_1[2]
-                self.inception_v4_stop_l_1 = base_2[2]
-                self.inception_v4_stop_l_2 = base_3[2]
-                
-                self.inception_v4_loss_0 = base_1[0]
-                self.inception_v4_loss_1 = base_2[0]
-                self.inception_v4_loss_2 = base_3[0]
+                self.inception_v4_stop_mix = stop_t + stop_l
 
                 # str(int(base_1[2])) + '--' + str(int(base_2[2])) + '--' + str(int(base_3[2]))
                 # self.inception_v4_loss = str(int(base_1[0])) + '--' + str(int(base_2[0])) + '--' + str(int(base_3[0]))
@@ -568,18 +554,11 @@ class Classify(op_base):
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
-
-                base_1,base_2,base_3 = item_graph(self.inception_res_model.inception_res,need_change_channel_noise = True)
-                _loss = base_1[0] + base_2[0] + base_3[0]
-                stop_t = base_1[1] + base_2[1] + base_3[1]
-                stop_l = base_1[2] + base_2[2] + base_3[2]
-
-                # _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise = True)
+                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise = True)
                 _loss_total += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
-                self.inception_res_loss = _loss
-                self.inception_res_stop_t = stop_t
-                self.inception_res_stop_l = stop_l
+
+                self.inception_res_stop_mix = stop_t + stop_l
                 
 
             elif(item == 'resnet_50'):
@@ -636,16 +615,10 @@ class Classify(op_base):
 
             elif(item == 'resnet_tel'):
                 alpha7 = 1 / model_weight_length
-
-                base_1,base_2,base_3 = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
-                _loss = base_1[0] + base_2[0] + base_3[0]
-                stop_t = base_1[1] + base_2[1] + base_3[1]
-                stop_l = base_1[2] + base_2[2] + base_3[2]
-                
-                # _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
+                _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
                 _loss_total += _loss * alpha7
                 _stop_mix += (stop_t + stop_l)
-                self.resnet_tel_loss = _loss
+                self.inception_tel_stop_mix = stop_t + stop_l
 
         # self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_res_tar + r_inception_res_lab
         # self.resnet_stop_value = _stop_mix
