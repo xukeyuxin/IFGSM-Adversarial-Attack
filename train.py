@@ -717,7 +717,7 @@ class Classify(op_base):
                 if( i == 300):
                     self.writer(_image_path,write_image)
                     hard_writer.write(_image_path + '\n')
-                    print('hard %s one attack  weight: %s' %  (_stop,_weight))
+                    print('hard one attack  weight: %s' %  _weight)
                     self.sess.run(self.tf_assign_init())
 
                 # if(i % 10 == 0):
