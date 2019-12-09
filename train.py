@@ -715,7 +715,7 @@ class Classify(op_base):
                     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
                     self.sess.run(self.tf_assign_init())
                     break 
-                if( i == 300):
+                if( i == 50):
                     self.writer(_image_path,write_image)
                     hard_writer.write(_image_path + '\n')
                     print('hard one attack  weight: %s' %  _weight)
