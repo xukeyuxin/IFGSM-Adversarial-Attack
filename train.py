@@ -689,7 +689,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_no_channel_noise2',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test_no_channel_no_tar_noise1',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
