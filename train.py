@@ -519,7 +519,7 @@ class Classify(op_base):
 
         _loss_total = 0
         _stop_mix = 0.
-        model_weight_length = len(self.model_list) + 3
+        model_weight_length = len(self.model_list)
         for item in self.model_list:
             if(item == 'inception_v4'):
                 ## inception4
@@ -531,7 +531,7 @@ class Classify(op_base):
 
             elif(item == 'inception_v3'):
                 ## inception3
-                alpha2 = 2 / model_weight_length
+                alpha2 = 1 / model_weight_length
                 logits_inception_v3 = self.inception_v3_model.inception_v3(self.combine_images)
                 # logits_inception_v3 = self.inception_v3_model.logits
                 target_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v3)) 
@@ -609,7 +609,7 @@ class Classify(op_base):
                 self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
 
             elif(item == 'resnet_tel'):
-                alpha7 = 4 / model_weight_length
+                alpha7 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
                 _loss_total += _loss * alpha7
                 _stop_mix += (stop_t + stop_l)
