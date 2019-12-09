@@ -568,7 +568,13 @@ class Classify(op_base):
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise = True)
+
+                base_1,base_2,base_3 = item_graph(self.inception_res_model.inception_res,need_change_channel_noise = True)
+                _loss = base_1[0] + base_2[0] + base_3[0]
+                stop_t = base_1[1] + base_2[1] + base_3[1]
+                stop_l = base_1[2] + base_2[2] + base_3[2]
+
+                # _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise = True)
                 _loss_total += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
                 self.inception_res_loss = _loss
@@ -630,7 +636,13 @@ class Classify(op_base):
 
             elif(item == 'resnet_tel'):
                 alpha7 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
+
+                base_1,base_2,base_3 = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
+                _loss = base_1[0] + base_2[0] + base_3[0]
+                stop_t = base_1[1] + base_2[1] + base_3[1]
+                stop_l = base_1[2] + base_2[2] + base_3[2]
+                
+                # _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
                 _loss_total += _loss * alpha7
                 _stop_mix += (stop_t + stop_l)
                 self.resnet_tel_loss = _loss
@@ -768,7 +780,7 @@ class Classify(op_base):
                     print('v4_s_l: %s' % _inception_v4_stop_l_0)
                     print('v4_s_l: %s' % _inception_v4_stop_l_1)
                     print('v4_s_l: %s' % _inception_v4_stop_l_2)
-                    
+
                     # print('v_res_tar: %s' % _inception_res_loss)
                     # print('v4_res_t: %s' % _inception_res_stop_t)
                     # print('v4_res_l: %s' % _inception_res_stop_l)
