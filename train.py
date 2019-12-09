@@ -485,7 +485,7 @@ class Classify(op_base):
                 logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
                 noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
 
-                return rgb_loss + 2. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
+                return rgb_loss + 1. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
                 # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
 
             else:
@@ -695,7 +695,7 @@ class Classify(op_base):
     def attack(self):
         train_op = self.attack_graph()
         hard_writer = open('hard.txt','a+')
-        for _ in range(100):
+        for _ in range(1216):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
             print('start one attack image: %s' %  _image_path)
             label_np = np.array([int(_label)])
