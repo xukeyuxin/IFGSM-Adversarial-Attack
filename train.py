@@ -708,8 +708,8 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in tqdm(range(0,301)):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_stop = self.sess.run([train_op,self.combine_images,self.loss_weight,self.mix_stop],feed_dict = feed_dict)
-                if( _stop <= 1.):
+                _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
+                if( _loss <= -100.):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
                     self.sess.run(self.tf_assign_init())
@@ -720,27 +720,27 @@ class Classify(op_base):
                     print('hard %s one attack  weight: %s' %  (_stop,_weight))
                     self.sess.run(self.tf_assign_init())
 
-                if(i % 10 == 0):
-                    # _inception_res_loss,_inception_res_stop_t,_inception_res_stop_l,_resnet_tel_loss
-                    _, _total_loss,_weight,_stop,_inception_v4_stop_mix,_inception_res_stop_mix,_inception_tel_stop_mix = self.sess.run([
-                        train_op,
-                        self.total_loss,
-                        self.loss_weight,
-                        self.mix_stop,
-                        self.inception_v4_stop_mix,
-                        self.inception_res_stop_mix,
-                        self.inception_tel_stop_mix,
-                        # self.inception_res_loss,
-                        # self.inception_res_stop_t,
-                        # self.inception_res_stop_l,
-                        # self.resnet_tel_loss
-                        ],feed_dict = feed_dict)
-                    print('stop value: %s' % _stop),
-                    print('total_loss: %s' % _total_loss),
-                    print('weight_fit: %s' % _weight)
-                    print('v4_tar: %s' % _inception_v4_stop_mix)
-                    print('v4_tar: %s' % _inception_res_stop_mix)
-                    print('v4_tar: %s' % _inception_tel_stop_mix)
+                # if(i % 10 == 0):
+                #     # _inception_res_loss,_inception_res_stop_t,_inception_res_stop_l,_resnet_tel_loss
+                #     _, _total_loss,_weight,_stop,_inception_v4_stop_mix,_inception_res_stop_mix,_inception_tel_stop_mix = self.sess.run([
+                #         train_op,
+                #         self.total_loss,
+                #         self.loss_weight,
+                #         self.mix_stop,
+                #         self.inception_v4_stop_mix,
+                #         self.inception_res_stop_mix,
+                #         self.inception_tel_stop_mix,
+                #         # self.inception_res_loss,
+                #         # self.inception_res_stop_t,
+                #         # self.inception_res_stop_l,
+                #         # self.resnet_tel_loss
+                #         ],feed_dict = feed_dict)
+                #     print('stop value: %s' % _stop),
+                #     print('total_loss: %s' % _total_loss),
+                #     print('weight_fit: %s' % _weight)
+                #     print('v4_tar: %s' % _inception_v4_stop_mix)
+                #     print('v4_tar: %s' % _inception_res_stop_mix)
+                #     print('v4_tar: %s' % _inception_tel_stop_mix)
 
                     # print('v_res_tar: %s' % _inception_res_loss)
                     # print('v4_res_t: %s' % _inception_res_stop_t)
