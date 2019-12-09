@@ -447,17 +447,23 @@ class Classify(op_base):
         #     print(new_image)
         #     return new_image
 
-        def cell_graph(logit,need_label_cross = True):
-            target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logit)) 
-            r_restel_tar_base = large_alpha_r(logit)
+        def cell_graph(logit,need_label_cross = True,need_target_cross = False):
+            r_restel_tar_base = 0.
+            r_restel_lab_base = 0.
+            loss_resnet_tel_base = 0.
+            if(need_target_cross):
+                target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logit)) 
+                r_restel_tar_base = large_alpha_r(logit) 
+                loss_resnet_tel_base += r_restel_tar_base * target_cross_entropy_resnet_tel
             if(need_label_cross):
                 label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
-                r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel > 50.,lambda: 0.,lambda: 1.)
-                loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel - r_restel_lab_base * label_cross_entropy_resnet_tel
-                return loss_resnet_tel_base, r_restel_tar_base, r_restel_lab_base
-            else:
-                loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
-                return loss_resnet_tel_base, r_restel_tar_base
+                r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel > 150.,lambda: 0.,lambda: 1.)
+                loss_resnet_tel_base -= r_restel_lab_base * label_cross_entropy_resnet_tel
+
+            return loss_resnet_tel_base, r_restel_tar_base, r_restel_lab_base
+            # else:
+            #     loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
+            #     return loss_resnet_tel_base, r_restel_tar_base
 
 
             
@@ -474,10 +480,12 @@ class Classify(op_base):
             rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
             if(need_change_channel_noise):
                 logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
-                logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
                 bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
-                noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False)
-                return rgb_loss + bgr_loss + 0. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
+                return rgb_loss + bgr_loss, rgb_stop_t + bgr_stop_t, rgb_stop_l + bgr_stop_l
+
+                # logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
+                # noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False)
+                # return rgb_loss + bgr_loss + 0. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
             else:
                 return rgb_loss , rgb_stop_t , rgb_stop_l
 
