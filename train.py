@@ -678,7 +678,7 @@ class Classify(op_base):
     def attack(self):
         train_op = self.attack_graph()
         hard_writer = open('hard.txt','a+')
-        for _ in tqdm(range(1217)):
+        for _ in range(100):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
             print('start one attack image: %s' %  _image_path)
             label_np = np.array([int(_label)])

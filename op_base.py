@@ -88,7 +88,7 @@ class data(object):
     def load_attack_image(self):
         with open(self.attack_image,'r') as f:
             reader = csv.reader(f)
-            for im_p,label,target in reader:
+            for im_p,label,target in tqdm(reader):
                 image_content = self.rbg2float(cv2.imread(os.path.join(self.attack_content,im_p)))
                 yield im_p,image_content,label,target
 
