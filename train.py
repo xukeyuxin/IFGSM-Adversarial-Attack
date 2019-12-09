@@ -485,7 +485,7 @@ class Classify(op_base):
 
 
 
-        def mask_gradient(grads,drop_probs = int(0.005 * 299 * 299),flatten_shape = [299*299,3]):
+        def mask_gradient(grads,drop_probs = int(1 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
             grads_flatten = tf.reshape(grads,flatten_shape)
 
@@ -634,22 +634,22 @@ class Classify(op_base):
         feat_grad = tf.gradients(ys = _loss_total,xs = self.tmp_noise)[0] ## (299,299,3)
 
         loss1_grad = feat_grad * (1 - momentum) + self.v1_grad * momentum
-        # loss1_v = feat_grad * (1 - momentum) + old_grad * momentum
-
+        
+        ### weight loss
         loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
-        loss_tv = self.tv_loss(tmp_noise)
+        # loss_tv = self.tv_loss(tmp_noise)
 
-        r3 = 1.
-        r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
-        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
+        # r3 = 1.
+        # r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
+        # r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
-        # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        loss_weight = r3 * 0.025 * loss_l2 
+        # # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
+        # loss_weight = r3 * 0.025 * loss_l2 
 
-        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
         
         ### mix_grad mask
-        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
+        mix_grad_mask = mask_gradient(loss1_grad)
 
         ### finetune grad mask + l2_loss
         # loss1_grad_mask = mask_gradient(loss1_grad)
