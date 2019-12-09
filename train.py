@@ -484,10 +484,11 @@ class Classify(op_base):
 
                 logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
                 noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
-                return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
+                return (rgb_loss,rgb_stop_t,rgb_stop_l) , (bgr_loss,bgr_stop_t,bgr_stop_l), (1. * noise_loss, noise_stop_t, noise_stop_l)
+                # rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
 
             else:
-                return rgb_loss , rgb_stop_t , rgb_stop_l
+                return (rgb_loss , rgb_stop_t , rgb_stop_l)
 
                 
 
@@ -524,12 +525,17 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4,need_change_channel_noise = True)
+                # _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4,need_change_channel_noise = True)
+                base_1,base_2,base_3 = item_graph(self.inception_v4_model.inception_v4,need_change_channel_noise = True)
+                _loss = base_1[0] + base_2[0] + base_3[0]
+                stop_t = base_1[1] + base_2[1] + base_3[1]
+                stop_l = base_1[2] + base_2[2] + base_3[2]
+
                 _loss_total += _loss * alpha1
                 _stop_mix += (stop_t + stop_l)
-                self.inception_v4_stop_t = stop_t
-                self.inception_v4_stop_l = stop_l
-                self.inception_v4_loss = _loss
+                self.inception_v4_stop_t = str(int(base_1[1])) + '--' + str(int(base_2[1])) + '--' + str(int(base_3[1]))
+                self.inception_v4_stop_l = str(int(base_1[2])) + '--' + str(int(base_2[2])) + '--' + str(int(base_3[2]))
+                self.inception_v4_loss = str(int(base_1[0])) + '--' + str(int(base_2[0])) + '--' + str(int(base_3[0]))
 
             elif(item == 'inception_v3'):
                 ## inception3
@@ -544,8 +550,6 @@ class Classify(op_base):
 
                 loss_inception_v3 = r_inception_v3_tar * target_cross_entropy_inception_v3 - r_inception_v3_lab * label_cross_entropy_inception_v3
                 _loss_total += loss_inception_v3 * alpha2
-
-
 
                 self.target_cross_entropy_inception_v3 = target_cross_entropy_inception_v3
                 self.label_cross_entropy_inception_v3 = label_cross_entropy_inception_v3
@@ -721,7 +725,8 @@ class Classify(op_base):
                     self.sess.run(self.tf_assign_init())
 
                 if(i % 10 == 0):
-                    _, _total_loss,_weight,_stop,_inception_v4_loss,_inception_v4_stop_t,_inception_v4_stop_l,_inception_res_loss,_inception_res_stop_t,_inception_res_stop_l,_resnet_tel_loss = self.sess.run([
+                    # _inception_res_loss,_inception_res_stop_t,_inception_res_stop_l,_resnet_tel_loss
+                    _, _total_loss,_weight,_stop,_inception_v4_loss,_inception_v4_stop_t,_inception_v4_stop_l = self.sess.run([
                         train_op,
                         self.total_loss,
                         self.loss_weight,
@@ -729,10 +734,10 @@ class Classify(op_base):
                         self.inception_v4_loss,
                         self.inception_v4_stop_t,
                         self.inception_v4_stop_l,
-                        self.inception_res_loss,
-                        self.inception_res_stop_t,
-                        self.inception_res_stop_l,
-                        self.resnet_tel_loss
+                        # self.inception_res_loss,
+                        # self.inception_res_stop_t,
+                        # self.inception_res_stop_l,
+                        # self.resnet_tel_loss
                         ],feed_dict = feed_dict)
                     print('stop value: %s' % _stop),
                     print('total_loss: %s' % _total_loss),
@@ -740,10 +745,10 @@ class Classify(op_base):
                     print('v4_tar: %s' % _inception_v4_loss)
                     print('v4_s_t: %s' % _inception_v4_stop_t)
                     print('v4_s_l: %s' % _inception_v4_stop_l)
-                    print('v_res_tar: %s' % _inception_res_loss)
-                    print('v4_res_t: %s' % _inception_res_stop_t)
-                    print('v4_res_l: %s' % _inception_res_stop_l)
-                    print('tel_tar: %s' % _resnet_tel_loss)
+                    # print('v_res_tar: %s' % _inception_res_loss)
+                    # print('v4_res_t: %s' % _inception_res_stop_t)
+                    # print('v4_res_l: %s' % _inception_res_stop_l)
+                    # print('tel_tar: %s' % _resnet_tel_loss)
                     # _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
                     #     train_op,
                     #     self.total_loss,
