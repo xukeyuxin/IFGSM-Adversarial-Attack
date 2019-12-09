@@ -477,7 +477,7 @@ class Classify(op_base):
                 logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
                 bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
                 noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False)
-                return rgb_loss + bgr_loss + 0.1*noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
+                return rgb_loss + bgr_loss + noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
             else:
                 return rgb_loss , rgb_stop_t , rgb_stop_l
 
@@ -639,17 +639,17 @@ class Classify(op_base):
         loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
         # loss_tv = self.tv_loss(tmp_noise)
 
-        # r3 = 1.
-        # r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
-        # r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
+        r3 = 1.
+        r3 = tf.cond(self.index > 100,lambda: r3 * 0.1,lambda: r3)
+        r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
-        # # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        # loss_weight = r3 * 0.025 * loss_l2 
+        # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
+        loss_weight = r3 * 0.0025 * loss_l2 
 
-        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
         
         ### mix_grad mask
-        mix_grad_mask = mask_gradient(loss1_grad)
+        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
 
         ### finetune grad mask + l2_loss
         # loss1_grad_mask = mask_gradient(loss1_grad)
@@ -672,7 +672,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','result',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test_noise_1',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
