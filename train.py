@@ -481,11 +481,11 @@ class Classify(op_base):
             if(need_change_channel_noise):
                 logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
                 bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
-                return rgb_loss + bgr_loss, rgb_stop_t + bgr_stop_t, rgb_stop_l + bgr_stop_l
 
-                # logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
-                # noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False)
-                # return rgb_loss + bgr_loss + 0. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
+                logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
+                noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
+                return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
+
             else:
                 return rgb_loss , rgb_stop_t , rgb_stop_l
 
@@ -524,7 +524,7 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4)
+                _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4,need_change_channel_noise = True)
                 _loss_total += _loss * alpha1
                 _stop_mix += (stop_t + stop_l)
                 self.inception_v4_loss = _loss
@@ -551,7 +551,7 @@ class Classify(op_base):
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res)
+                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise = True)
                 _loss_total += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
                 self.inception_res_loss = _loss
