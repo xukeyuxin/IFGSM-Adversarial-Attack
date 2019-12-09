@@ -483,8 +483,8 @@ class Classify(op_base):
                 bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
 
                 logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
-                noise_loss, noise_stop_t = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
-                return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l
+                noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
+                return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
 
             else:
                 return rgb_loss , rgb_stop_t , rgb_stop_l
