@@ -22,6 +22,7 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
+        self.random_size_step = 0
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
         self.model_list = ['inception_res']
