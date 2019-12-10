@@ -740,11 +740,10 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in range(0,501):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss,_t_loss,_l_loss,_random_size = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel,self.random_size],feed_dict = feed_dict)
+                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
-                print(_random_size)
                 self.writer(_image_path,write_image)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
