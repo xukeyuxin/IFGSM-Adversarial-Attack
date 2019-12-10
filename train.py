@@ -22,9 +22,9 @@ class Classify(op_base):
         op_base.__init__(self,args)
         self.sess = sess
         self.summary = []
-        self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
+        # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        # self.model_list = ['inception_v4']
+        self.model_list = ['inception_v4']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -557,7 +557,7 @@ class Classify(op_base):
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res)
+                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise=True)
                 _loss_total += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
 
@@ -707,7 +707,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_dense_mix_all',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test_dense_with_v_res',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
@@ -728,6 +728,7 @@ class Classify(op_base):
             for i in range(0,201):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
+                print(_loss)
                 if( _loss <= -120.):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
