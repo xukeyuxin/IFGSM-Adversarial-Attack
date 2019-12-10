@@ -470,9 +470,10 @@ class Classify(op_base):
 
         def tf_resize(input):
             self.new_size = 200 + 50 * tf.floor(self.index / 50)
+            
             # new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
-            return tf.image.resize_images(input,(self.new_size,self.new_size))
+            return tf.image.resize_images(input,(self.new_size,tf.cast(self.new_size,tf.int32)))
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
