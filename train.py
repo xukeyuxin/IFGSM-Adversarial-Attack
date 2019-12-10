@@ -456,9 +456,9 @@ class Classify(op_base):
             loss_resnet_tel_base = 0.
             if(need_target_cross):
                 target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logit)) 
-                r_restel_tar_base = 1.
+                # r_restel_tar_base = 1.
                 self.target_cross_entropy_resnet_tel = target_cross_entropy_resnet_tel
-                # r_restel_tar_base = large_alpha_r(logit) 
+                r_restel_tar_base = large_alpha_r(logit) 
                 loss_resnet_tel_base += r_restel_tar_base * target_cross_entropy_resnet_tel
             if(need_label_cross):
                 label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
@@ -471,33 +471,30 @@ class Classify(op_base):
             #     loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
             #     return loss_resnet_tel_base, r_restel_tar_base
 
-        def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
-
-            if(newH != 299):
-                new_image = tf.image.resize_images(self.input_images,(newH,newH))
-                new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop)]
-                new_image = tf.reshape(new_image,[1,test_crop,test_crop,3])
+        def item_graph(_model,need_random_process = True,newH = 299, test_crop = 299):
+            origin_image = self.input_images
+            clip_image = self.input_images + self.tmp_noise
+            ### random process
+            if(need_random_process):
+                random_origin_image = random_process(origin_image)
+                random_image = random_process(clip_image)
+                random_noise = random_new_image - random_origin_image
             else:
-                new_image = self.input_images
-            # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
-            clip_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
+                random_image = clip_image
 
-            # self.random_size = random_resize.shape
-            # print(random_resize.shape)
-            logits_resnet_tel_base = _model(clip_image)
-            rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
-            if(need_change_channel_noise):
-                # logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
-                # bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
+            logits_resnet_tel_base = _model(random_image)
+            rgb_loss,rgb_stop_t,rgb_stop_l  = cell_graph(logits_resnet_tel_base)
+            # if(need_change_channel_noise):
+            #     # logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
+            #     # bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
 
-                logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
-                noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
+            #     logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
+            #     noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
 
-                return rgb_loss + 1. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
-                # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
+            #     return rgb_loss + 1. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
+            #     # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
 
-            else:
-                return rgb_loss , rgb_stop_t , rgb_stop_l
+            return rgb_loss, random_noise
 
                 
 
@@ -519,8 +516,9 @@ class Classify(op_base):
             return gradient_mask
 
         ### softmax loss
-        tmp_noise = self.pre_noise(self.mask)
-        self.combine_images = tf.clip_by_value(self.input_images + tmp_noise,-1.,1.)
+        self.tmp_noise = self.pre_noise(self.mask)
+
+        self.combine_images = tf.clip_by_value(self.input_images + self.tmp_noise,-1.,1.)
         # self.combine_images_change_channels = tf.clip_by_value(self.input_images[...,::-1] + tmp_noise,-1.,1.)
         
         # with tf.control_dependencies([self.combine_images]):
@@ -531,7 +529,13 @@ class Classify(op_base):
         _stop_mix = 0.
         model_weight_length = len(self.model_list)
         for item in self.model_list:
-            if(item == 'inception_v4'):
+            if(item == 'inception_res'):
+                ## inception_res
+                alpha3 = 1 / model_weight_length
+                _loss,self.tmp_noise = item_graph(self.inception_res_model.inception_res,need_random_process = True)
+                _loss_total += _loss * alpha3
+
+            elif(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4)
@@ -547,55 +551,12 @@ class Classify(op_base):
                 _stop_mix += (stop_t + stop_l)
                 self.inception_v3_stop_mix = stop_t + stop_l
 
-                # alpha2 = 1 / model_weight_length
-                # logits_inception_v3 = self.inception_v3_model.inception_v3(self.combine_images)
-                # # logits_inception_v3 = self.inception_v3_model.logits
-                # target_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_inception_v3)) 
-                # label_cross_entropy_inception_v3 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_inception_v3)) 
-
-                # r_inception_v3_tar = large_alpha_r(logits_inception_v3)
-                # r_inception_v3_lab = tf.cond( label_cross_entropy_inception_v3 > 50.,lambda: 0.,lambda: 1.)
-
-                # loss_inception_v3 = r_inception_v3_tar * target_cross_entropy_inception_v3 - r_inception_v3_lab * label_cross_entropy_inception_v3
-                # _loss_total += loss_inception_v3 * alpha2
-
-                # self.target_cross_entropy_inception_v3 = target_cross_entropy_inception_v3
-                # self.label_cross_entropy_inception_v3 = label_cross_entropy_inception_v3
-
-            elif(item == 'inception_res'):
-                ## inception_res
-                alpha3 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise=True)
-
-
-                _loss_total += _loss * alpha3
-                _stop_mix += (stop_t + stop_l)
-
-                self.inception_res_stop_mix = stop_t + stop_l
-                
-
             elif(item == 'resnet_50'):
                 ## resnet_50
                 alpha4 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.resnet_50_model.resnet_50)
                 _loss_total += _loss * alpha4
                 _stop_mix += (stop_t + stop_l)
-                # self.inception_v3_stop_mix = stop_t + stop_l
-
-
-                # alpha4 = 1 / model_weight_length
-                # logits_resnet_50 = self.resnet_50_model.resnet_50(self.combine_images)
-                # # logits_resnet_50 = self.resnet_50_model.logits
-                # target_cross_entropy_resnet_50= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_50)) 
-                # label_cross_entropy_resnet_50 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_50)) 
-
-                # r_res50_tar = large_alpha_r(logits_resnet_50)
-                # r_res50_lab = tf.cond( label_cross_entropy_resnet_50 > 50.,lambda: 0.,lambda: 1.)
-                # loss_resnet_50 = r_res50_tar * target_cross_entropy_resnet_50 - r_res50_lab * label_cross_entropy_resnet_50
-                # _loss_total += loss_resnet_50 * alpha4
-
-                # self.target_cross_entropy_resnet_50 = target_cross_entropy_resnet_50
-                # self.label_cross_entropy_resnet_50 = label_cross_entropy_resnet_50
 
             elif(item == 'resnet_101'):
                 ## resnet_101
@@ -604,22 +565,6 @@ class Classify(op_base):
                 _loss_total += _loss * alpha5
                 _stop_mix += (stop_t + stop_l)
 
-                # alpha5 = 1 / model_weight_length
-                # logits_resnet_101 = self.resnet_101_model.resnet_101(self.combine_images)
-                # # logits_resnet_101 = self.resnet_101_model.logits
-                # target_cross_entropy_resnet_101= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_101)) 
-                # label_cross_entropy_resnet_101 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_101)) 
-
-                # r_res101_tar = large_alpha_r(logits_resnet_101)
-                # r_res101_lab = tf.cond( label_cross_entropy_resnet_101 > 50.,lambda: 0.,lambda: 1.)
-                # loss_resnet_101 = r_res101_tar * target_cross_entropy_resnet_101 - r_res101_lab * label_cross_entropy_resnet_101
-                # _loss_total += loss_resnet_101 * alpha5
-
-
-                # self.target_cross_entropy_resnet_101 = target_cross_entropy_resnet_101
-                # self.label_cross_entropy_resnet_101 = label_cross_entropy_resnet_101
-                
-
             elif(item == 'resnet_152'):
                 ## resnet_152
                 alpha6 = 1 / model_weight_length
@@ -627,31 +572,12 @@ class Classify(op_base):
                 _loss_total += _loss * alpha6
                 _stop_mix += (stop_t + stop_l)
 
-
-                # alpha6 = 1 / model_weight_length
-                # logits_resnet_152 = self.resnet_152_model.resnet_152(self.combine_images)
-                # # logits_resnet_152 = self.resnet_152_model.logits
-                # target_cross_entropy_resnet_152= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logits_resnet_152)) 
-                # label_cross_entropy_resnet_152 = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logits_resnet_152)) 
-                
-                # r_res152_tar = large_alpha_r(logits_resnet_152)
-                # r_res152_lab = tf.cond( label_cross_entropy_resnet_152 > 50.,lambda: 0.,lambda: 1.)
-                # loss_resnet_152 = r_res152_tar * target_cross_entropy_resnet_152 - r_res152_lab * label_cross_entropy_resnet_152
-                # _loss_total += loss_resnet_152 * alpha6
-
-                # self.target_cross_entropy_resnet_152 = target_cross_entropy_resnet_152
-                # self.label_cross_entropy_resnet_152 = label_cross_entropy_resnet_152
-
             elif(item == 'resnet_tel'):
                 alpha7 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
                 _loss_total += _loss * alpha7
                 _stop_mix += (stop_t + stop_l)
-                # self.inception_tel_stop_mix = stop_t + stop_l
 
-        # self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_res_tar + r_inception_res_lab
-        # self.resnet_stop_value = _stop_mix
-        # self.mix_stop = self.inception_stop_value + self.resnet_stop_value
         self.mix_stop = _stop_mix
 
         # # ### logits
