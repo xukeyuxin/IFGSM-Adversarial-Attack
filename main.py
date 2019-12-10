@@ -19,8 +19,8 @@ parser.add_argument("-fm", "--finetune_model", type=str, default="model/ckpt-fin
 parser.add_argument("-fmo", "--finetune_model_old", type=str, default="model/finetune_model_old/checkpoint_2_44800.ckpt")
 
 parser.add_argument("-sm", "--save_model", type=str, default="model/finetune_model")
-parser.add_argument("-mp", "--attack_image", type=str, default="data/dev.csv")
-# parser.add_argument("-mp", "--attack_image", type=str, default="data/test_dev.csv")
+# parser.add_argument("-mp", "--attack_image", type=str, default="data/dev.csv")
+parser.add_argument("-mp", "--attack_image", type=str, default="data/test_dev.csv")
 parser.add_argument("-atc", "--attack_content", type=str, default="data/images")
 parser.add_argument("-otin", "--one_target_image_num", type=int, default=20)
 
