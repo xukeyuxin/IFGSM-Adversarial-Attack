@@ -474,9 +474,9 @@ class Classify(op_base):
 
             # self.new_size = tf.cast( 200 + 50 * (tf.floor(self.index / 50)), tf.int32).eval()
 
-            self.new_size = tuple(np.random.randint(200,400,(2)))
+            # self.new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
-            return tf.image.resize_images(input,self.new_size)
+            return tf.image.resize_images(input,np.random.randint(200,400),np.random.randint(200,400,(2)))
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
@@ -489,6 +489,7 @@ class Classify(op_base):
             # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             clip_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             random_resize = tf_resize(clip_image)
+            self.new_size = random_resize.shape
             # print(random_resize.shape)
             logits_resnet_tel_base = _model(random_resize)
             rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
@@ -742,11 +743,11 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in range(0,501):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
+                _,write_image,_weight,_loss,_t_loss,_l_loss,_new_size = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel,self.new_size],feed_dict = feed_dict)
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
-                print(self.new_size)
+                print(_new_size)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
