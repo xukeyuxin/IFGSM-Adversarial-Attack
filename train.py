@@ -729,7 +729,7 @@ class Classify(op_base):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
                 print(_loss)
-                if( _loss <= -50.):
+                if( _loss <= -200.):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
                     self.sess.run(self.tf_assign_init())
