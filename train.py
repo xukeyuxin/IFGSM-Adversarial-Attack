@@ -737,20 +737,20 @@ class Classify(op_base):
             _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
             print('start attack %s' % _image_path)
-            for i in range(0,501):
+            for i in range(0,101):
                 _image_content = np_random_process(_image_content)
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print('loss %s :' % _loss)
                 print('t_loss %s :' % _t_loss)
-                print('t_loss %s :' % _l_loss)
+                print('l_loss %s :' % _l_loss)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
                 #     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
                 #     self.sess.run(self.tf_assign_init())
                 #     break 
-                if( i == 500):
+                if( i == 100):
                     self.writer(_image_path,write_image)
                     hard_writer.write(_image_path + '\n')
                     print('hard one attack  weight: %s' %  _weight)
