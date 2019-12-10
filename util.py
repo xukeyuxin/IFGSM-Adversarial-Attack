@@ -1,4 +1,7 @@
 import tensorflow as tf
+import cv2
+import numpy as np
+import math
 
 def preprocess(image, height, width, bbox):
     # 若没有提供标注框则默认为关注区域为整个图像
@@ -33,3 +36,36 @@ def tf_resize(input):
 
     return tf.clip_by_value(new_image, -1.0, 1.0)
        
+
+def np_random_process(input):
+    input_shape = input.shape
+    input = np.squeeze(input)
+    ## flip -1,对角， 0 垂直， 1 水平
+    random_flip = np.random.randint(-1,2)
+    # random_flip = 0
+    image = cv2.flip(input,random_flip,dst=None)
+    # ## random crop 
+    # crop_size = np.random.randint(3,5) ## 2, 3
+    # window_size = (crop_size * height / 4 , crop_size * weight / 4)
+    # start_block = ( np.random.randint(0,height - window_size[0]), np.random.randint(0,weight - window_size[1]) )
+    # image = image[start_block[0]:(start_block[0] + math.floor(window_size[0])), start_block[1]:(start_block[1] + math.floor(window_size[1]))]
+     
+    # resize 
+    # random_height = np.random.randint(200,400)
+    # random_weight = np.random.randint(200,400)
+    # image = cv2.resize(image,(random_height,random_weight))
+
+    ## change brightness
+    # alpha = np.random.uniform(0.2,1.4)
+    # beta = np.random.randint(0,101)
+    # for y in range(image.shape[0]):
+    #     for x in range(image.shape[1]):
+    #         for c in range(image.shape[2]):
+    #             image[y,x,c] = np.clip(alpha*image[y,x,c] + beta, 0, 255)
+    ## write
+    # cv2.imwrite('test.png',image)
+    return image.reshape(input_shape)
+if __name__ == '__main__':
+    img = cv2.imread('data/test/0c7ac4a8c9dfa802.png')
+    np_random_process(img)
+        

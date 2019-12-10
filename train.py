@@ -16,6 +16,7 @@ from tensorflow.contrib.layers import xavier_initializer
 from guass import GaussianBlur
 import numpy as np
 import random
+from util import *
 
 class Classify(op_base):
     def __init__(self,sess,args):
@@ -373,8 +374,6 @@ class Classify(op_base):
         # input_blur_images =  np.expand_dims(cv2.resize(cv2.resize(np.squeeze(input_image),(224,224)),(299,299)),0)
         # return {self.input_images:input_image,self.input_blur_images:input_blur_images,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index} 
         # return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
-        new_size = np.random.randint(200,400,(2,))
-        print(new_size)
         return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index}
     def init_noise(self):
         ## init
@@ -472,8 +471,6 @@ class Classify(op_base):
             #     loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
             #     return loss_resnet_tel_base, r_restel_tar_base
 
-
-            
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
             if(newH != 299):
@@ -742,8 +739,10 @@ class Classify(op_base):
             mask = np.ones([1,299,299,1])
             print('start attack %s' % _image_path)
             for i in range(0,501):
+                _image_content = np_random_process(_image_content)
+                print(_image_content.shape)
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss,_t_loss,_l_loss,_resize_image = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel,self.resize_image],feed_dict = feed_dict)
+                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
@@ -760,66 +759,6 @@ class Classify(op_base):
                     print('hard one attack  weight: %s' %  _weight)
                     self.sess.run(self.tf_assign_init())
 
-                # if(i % 10 == 0):
-                #     # _inception_res_loss,_inception_res_stop_t,_inception_res_stop_l,_resnet_tel_loss
-                #     _, _total_loss,_weight,_stop,_inception_v4_stop_mix,_inception_res_stop_mix,_inception_tel_stop_mix = self.sess.run([
-                #         train_op,
-                #         self.total_loss,
-                #         self.loss_weight,
-                #         self.mix_stop,
-                #         self.inception_v4_stop_mix,
-                #         self.inception_res_stop_mix,
-                #         self.inception_tel_stop_mix,
-                #         # self.inception_res_loss,
-                #         # self.inception_res_stop_t,
-                #         # self.inception_res_stop_l,
-                #         # self.resnet_tel_loss
-                #         ],feed_dict = feed_dict)
-                #     print('stop value: %s' % _stop),
-                #     print('total_loss: %s' % _total_loss),
-                #     print('weight_fit: %s' % _weight)
-                #     print('v4_tar: %s' % _inception_v4_stop_mix)
-                #     print('v4_tar: %s' % _inception_res_stop_mix)
-                #     print('v4_tar: %s' % _inception_tel_stop_mix)
-
-                    # print('v_res_tar: %s' % _inception_res_loss)
-                    # print('v4_res_t: %s' % _inception_res_stop_t)
-                    # print('v4_res_l: %s' % _inception_res_stop_l)
-                    # print('tel_tar: %s' % _resnet_tel_loss)
-                    # _, _total_loss,_weight,_stop,_target_cross_entropy_inception_v4,_label_cross_entropy_inception_v4,_target_cross_entropy_inception_v3,_label_cross_entropy_inception_v3,_target_cross_entropy_inception_res,_label_cross_entropy_inception_res,_target_cross_entropy_resnet_50,_label_cross_entropy_resnet_50,_target_cross_entropy_resnet_101,_label_cross_entropy_resnet_101,_target_cross_entropy_resnet_152,_label_cross_entropy_resnet_152 = self.sess.run([
-                    #     train_op,
-                    #     self.total_loss,
-                    #     self.loss_weight,
-                    #     self.stop_value,
-                    #     self.target_cross_entropy_inception_v4,
-                    #     self.label_cross_entropy_inception_v4,
-                    #     self.target_cross_entropy_inception_v3,
-                    #     self.label_cross_entropy_inception_v3,
-                    #     self.target_cross_entropy_inception_res,
-                    #     self.label_cross_entropy_inception_res,
-                    #     self.target_cross_entropy_resnet_50,
-                    #     self.label_cross_entropy_resnet_50,
-                    #     self.target_cross_entropy_resnet_101,
-                    #     self.label_cross_entropy_resnet_101,
-                    #     self.target_cross_entropy_resnet_152,
-                    #     self.label_cross_entropy_resnet_152
-                    #     ],feed_dict = feed_dict)
-                    # print('stop value: %s' % _stop),
-                    # print('total_loss: %s' % _total_loss),
-                    # print('weight_fit: %s' % _weight)
-                    # print('v4_tar: %s' % _target_cross_entropy_inception_v4)
-                    # print('v4_lab: %s' % _label_cross_entropy_inception_v4)
-                    # print('v3_tar: %s' % _target_cross_entropy_inception_v3)
-                    # print('v3_lab: %s' % _label_cross_entropy_inception_v3)
-                    # print('v_res_tar: %s' % _target_cross_entropy_inception_res)
-                    # print('v_res_lab: %s' % _label_cross_entropy_inception_res)
-                    # print('res50_tar: %s' % _target_cross_entropy_resnet_50)
-                    # print('res50_lab: %s' % _label_cross_entropy_resnet_50)
-                    # print('res101_tar: %s' % _target_cross_entropy_resnet_101)
-                    # print('res101_lab: %s' % _label_cross_entropy_resnet_101)
-                    # print('res152_tar: %s' % _target_cross_entropy_resnet_152)
-                    # print('res152_lab: %s' % _label_cross_entropy_resnet_152)
- 
     def train(self):
         self.data.load_fineune_data()
         data_generator = self.data.get_fineune_generator()
@@ -853,6 +792,7 @@ class Classify(op_base):
             while True:
                 try:
                     image_content, label_content = next(data_generator)
+                    image_content = 
                     _,summary_str,_label,_logit = self.sess.run([train_op,summary_op,label,logit],feed_dict = {self.input_images:image_content,self.label_label:label_content})
                     step += 1
                     if(step % 10 == 0):

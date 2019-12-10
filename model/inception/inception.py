@@ -22,8 +22,7 @@ class inception(object):
             input = input_image
         else:
             input = self.X
-        input = tf_resize(input)
-        self.resize_image = tf.squeeze(input)
+
         with slim.arg_scope(arg_scope):
             net, end_points = inception_v4(input, is_training=self.is_training,reuse=tf.AUTO_REUSE)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
@@ -68,9 +67,7 @@ class inception(object):
             input = input_image
         else:
             input = self.X
-        input = tf_resize(input)
-        self.resize_image = tf.squeeze(input)
-        
+
         with slim.arg_scope(arg_scope):
             net, end_points = inception_resnet_v2(input, is_training=self.is_training,reuse=tf.AUTO_REUSE)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
