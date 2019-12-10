@@ -495,7 +495,7 @@ class Classify(op_base):
             crop_weight = int(3 / 4 * weight)
             crop_height = int(3 / 4 * height)
             # new_image = tf.image.random_crop(input,(crop_height,crop_weight))
-            new_image = tf.image.random_flip_up_down(new_image)
+            new_image = tf.image.random_flip_up_down(input)
             new_image = tf.image.random_flip_left_right(new_image)
             new_image = tf.image.transpose_image(new_image)
             new_image = tf.image.random_brightness(new_image, max_delta = 0.5, seed=None)
