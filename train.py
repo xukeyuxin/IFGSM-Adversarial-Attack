@@ -492,8 +492,8 @@ class Classify(op_base):
 
         def tf_resize(input):
             height,weight =input.get_shape().as_list()[1:3]
-            crop_weight = 3 / 4 * weight
-            crop_height = 3 / 4 * height
+            crop_weight = int(3 / 4 * weight)
+            crop_height = int(3 / 4 * height)
             new_image = tf.image.random_crop(input,(crop_height,crop_weight))
             new_image = tf.image.random_flip_up_down(new_image)
             new_image = tf.image.random_flip_left_right(new_image)
