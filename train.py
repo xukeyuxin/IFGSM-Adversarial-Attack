@@ -373,7 +373,7 @@ class Classify(op_base):
         # return {self.input_images:input_image,self.input_blur_images:input_blur_images,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index} 
         # return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
         new_size = np.random.randint(200,400,(2,))
-        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.new_size:new_size}
+        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.new_size:new_size,self.index:index}
     def init_noise(self):
         ## init
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
