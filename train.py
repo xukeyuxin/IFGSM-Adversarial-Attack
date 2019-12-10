@@ -713,7 +713,7 @@ class Classify(op_base):
     def attack(self):
         train_op = self.attack_graph()
         hard_writer = open('hard.txt','a+')
-        for _ in range(1216):
+        for _ in tqdm(range(100)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
             print('start one attack image: %s' %  _image_path)
             label_np = np.array([int(_label)])
@@ -725,9 +725,10 @@ class Classify(op_base):
             _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
             print('start attack %s' % _image_path)
-            for i in tqdm(range(0,51)):
+            for i in range(0,51):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
+                print(_loss)
                 if( _loss <= -50.):
                     self.writer(_image_path,write_image)
                     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
