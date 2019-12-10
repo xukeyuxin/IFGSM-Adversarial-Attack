@@ -491,9 +491,10 @@ class Classify(op_base):
             return distorted_image
 
         def tf_resize(input):
-            height,weight =input.get_shape().as_list()[1:3]
-            crop_weight = int(3 / 4 * weight)
-            crop_height = int(3 / 4 * height)
+
+            # height,weight =input.get_shape().as_list()[1:3]
+            # crop_weight = int(3 / 4 * weight)
+            # crop_height = int(3 / 4 * height)
             # new_image = tf.image.random_crop(input,(crop_height,crop_weight))
             new_image = tf.image.random_flip_up_down(input)
             new_image = tf.image.random_flip_left_right(new_image)
@@ -515,7 +516,9 @@ class Classify(op_base):
                 new_image = self.input_images
             # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             clip_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
+            print(clip_image.shape)
             random_resize = tf_resize(clip_image)
+            print(random_resize.shape)
             self.random_size = random_resize.shape
             # print(random_resize.shape)
             logits_resnet_tel_base = _model(random_resize)
