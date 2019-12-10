@@ -483,7 +483,7 @@ class Classify(op_base):
                 new_image = self.input_images
             # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             clip_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
-            random_resize = clip_image
+            random_resize = tf_resize()
             # print(random_resize.shape)
             logits_resnet_tel_base = _model(random_resize)
             rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
