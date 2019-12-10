@@ -744,7 +744,7 @@ class Classify(op_base):
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
-                self.writer(_image_path,_resize_image)
+                self.writer(str(i) + '--' + _image_path,_resize_image)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
