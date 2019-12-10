@@ -567,7 +567,6 @@ class Classify(op_base):
                 alpha3 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise=True)
 
-                self.resize_image = self.inception_res_model.resize_image
 
                 _loss_total += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
