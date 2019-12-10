@@ -469,8 +469,8 @@ class Classify(op_base):
             #     return loss_resnet_tel_base, r_restel_tar_base
 
         def tf_resize(input):
-            # new_size = tuple(np.random.randint(200,400,(2)))
-            new_size = (300,300)
+            new_size = tuple(np.random.randint(200,400,(2)))
+            # new_size = (300,300)
             return tf.image.resize_images(input,new_size)
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
