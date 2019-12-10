@@ -476,7 +476,7 @@ class Classify(op_base):
 
             # self.new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
-            return tf.image.resize_images(input,np.random.randint(200,400),np.random.randint(200,400,(2)))
+            return tf.image.resize_images(input,np.random.randint(200,400),np.random.randint(200,400))
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
@@ -906,7 +906,7 @@ class Classify(op_base):
         while True:
             for item in image_list:
                 content = self.data.rbg2float(cv2.imread(item))
-                resize_size = tuple(np.random.randint(200,400,(2)))
+                # resize_size = tuple(np.random.randint(200,400,(2)))
                 content = cv2.resize(content,resize_size)
                 image_content = np.expand_dims(content,0).astype(np.float32)
                 logit = self.model.inception_res(image_content)
