@@ -33,6 +33,7 @@ class Classify(op_base):
         self.label_feature = tf.placeholder(tf.float32,shape = [2048])
         self.label_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
+        self.index = tf.placeholder(tf.int32,shape = [])
         self.new_size = tf.placeholder(tf.int32,shape = [2])
         # self.stop_value = tf.placeholder(tf.float32, shape = [])
         self.gaussian_blur = GaussianBlur()
