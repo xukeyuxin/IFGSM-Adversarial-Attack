@@ -459,6 +459,7 @@ class Classify(op_base):
                 loss_resnet_tel_base += r_restel_tar_base * target_cross_entropy_resnet_tel
             if(need_label_cross):
                 label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
+                self.label_cross_entropy_resnet_tel = label_cross_entropy_resnet_tel
                 r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel < -50.,lambda: 0.,lambda: 1.)
                 loss_resnet_tel_base -= r_restel_lab_base * label_cross_entropy_resnet_tel
 
@@ -736,8 +737,10 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in range(0,501):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
+                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print(_loss)
+                print(_t_loss)
+                print(_l_loss)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
                 #     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
