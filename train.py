@@ -33,7 +33,7 @@ class Classify(op_base):
         self.label_feature = tf.placeholder(tf.float32,shape = [2048])
         self.label_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
-        self.new_size = tf.placeholder(tf.int32,shape = [2,])
+        self.new_size = tf.placeholder(tf.int32,shape = [2])
         # self.stop_value = tf.placeholder(tf.float32, shape = [])
         self.gaussian_blur = GaussianBlur()
 
@@ -373,6 +373,7 @@ class Classify(op_base):
         # return {self.input_images:input_image,self.input_blur_images:input_blur_images,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index} 
         # return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
         new_size = np.random.randint(200,400,(2,))
+        print(new_size)
         return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.new_size:new_size,self.index:index}
     def init_noise(self):
         ## init
@@ -746,11 +747,11 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in range(0,501):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss,_t_loss,_l_loss,_new_size = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel,self.new_size],feed_dict = feed_dict)
+                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
-                print(_new_size.shape)
+                
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
