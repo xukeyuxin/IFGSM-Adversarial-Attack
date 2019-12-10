@@ -5,8 +5,11 @@ import tensorflow as tf
 from model.inception.inception_v4 import  inception_v4_arg_scope, inception_v4
 from model.inception.inception_v3 import  inception_v3_arg_scope, inception_v3
 from model.inception.inception_resnet_v2 import inception_resnet_v2, inception_resnet_v2_arg_scope
+from util import *
 slim = tf.contrib.slim
 
+
+     
 class inception(object):
     def __init__(self,image,is_training = True):
         self.num_classes = 1000 
@@ -19,6 +22,7 @@ class inception(object):
             input = input_image
         else:
             input = self.X
+        input = tf_resize(input)
         with slim.arg_scope(arg_scope):
             net, end_points = inception_v4(input, is_training=self.is_training,reuse=tf.AUTO_REUSE)
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
