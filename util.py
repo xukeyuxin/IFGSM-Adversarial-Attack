@@ -63,9 +63,9 @@ def np_random_process(input):
     #         for c in range(image.shape[2]):
     #             image[y,x,c] = np.clip(alpha*image[y,x,c] + beta, 0, 255)
     ## write
-    # cv2.imwrite('test.png',image)
+    cv2.imwrite('test.png',image)
     return image.reshape(input_shape)
 if __name__ == '__main__':
-    img = cv2.imread('data/test/0c7ac4a8c9dfa802.png')
+    img = cv2.imread('data/test_local/0c7ac4a8c9dfa802.png')
     np_random_process(img)
         

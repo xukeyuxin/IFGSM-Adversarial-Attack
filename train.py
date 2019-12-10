@@ -26,7 +26,7 @@ class Classify(op_base):
         self.random_size_step = 0
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        self.model_list = ['inception_res']
+        self.model_list = ['resnet_tel']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -647,7 +647,7 @@ class Classify(op_base):
                 _loss,stop_t,stop_l = item_graph(self.resnet_tel_model,need_change_channel_noise = True)
                 _loss_total += _loss * alpha7
                 _stop_mix += (stop_t + stop_l)
-                self.inception_tel_stop_mix = stop_t + stop_l
+                # self.inception_tel_stop_mix = stop_t + stop_l
 
         # self.inception_stop_value = r_inception_v4_tar + r_inception_v4_lab + r_inception_res_tar + r_inception_res_lab
         # self.resnet_stop_value = _stop_mix
@@ -717,13 +717,13 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test_random',_image_path)
         # image_combine_with_noise = os.path.join('data','test_result','test_resize_v_res',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
+
         train_op = self.attack_graph()
-        
         hard_writer = open('hard.txt','a+')
         for _ in tqdm(range(100)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
@@ -734,11 +734,11 @@ class Classify(op_base):
             label_input = self.data.make_label(label_np)
             target_input = self.data.make_label(target_np)
 
-            _image_content = np.expand_dims(_image_content ,0) # (1,299,299,3)
+            _image_origin = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
             print('start attack %s' % _image_path)
             for i in range(0,101):
-                _image_content = np_random_process(_image_content)
+                _image_content = np_random_process(_image_origin)
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print('loss %s :' % _loss)
@@ -751,10 +751,12 @@ class Classify(op_base):
                 #     self.sess.run(self.tf_assign_init())
                 #     break 
                 if( i == 100):
+                    feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
+                    _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
                     self.writer(_image_path,write_image)
-                    hard_writer.write(_image_path + '\n')
                     print('hard one attack  weight: %s' %  _weight)
                     self.sess.run(self.tf_assign_init())
+                    return
 
     def train(self):
         self.data.load_fineune_data()
