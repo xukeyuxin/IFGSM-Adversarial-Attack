@@ -722,7 +722,6 @@ class Classify(op_base):
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
-
         train_op = self.attack_graph()
         hard_writer = open('hard.txt','a+')
         for _ in tqdm(range(100)):
@@ -754,8 +753,8 @@ class Classify(op_base):
                     feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                     _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
                     self.writer(str(i) + '--' + _image_path,write_image)
-                    print('hard one attack  weight: %s' %  _weight)
-                    self.sess.run(self.tf_assign_init())
+                    print('hard one attack weight: %s' %  _weight)
+            self.sess.run(self.tf_assign_init())
                     
 
     def train(self):
