@@ -476,7 +476,8 @@ class Classify(op_base):
 
             # self.new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
-            return tf.image.resize_images(input,(np.random.randint(200,400),np.random.randint(200,400)) )
+            new_size = tuple(tf.random_uniform((2),200,400,dtype=tf.int32).eval())
+            return tf.image.resize_images(input,new_size)
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
