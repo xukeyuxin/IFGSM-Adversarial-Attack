@@ -469,8 +469,13 @@ class Classify(op_base):
             #     return loss_resnet_tel_base, r_restel_tar_base
 
         def tf_resize(input):
-            self.new_size = 200 + 50 * tf.floor(self.index / 50)
-            
+            self.new_size = 0
+            self.new_size = tf.cond( self.index > 50,lambda: self.new_size + 50,lambda: self.new_size)
+            self.new_size = tf.cond( self.index > 100,lambda: self.new_size + 50,lambda: self.new_size)
+            self.new_size = tf.cond( self.index > 150,lambda: self.new_size + 50,lambda: self.new_size)
+            self.new_size = tf.cond( self.index > 200,lambda: self.new_size + 50,lambda: self.new_size)
+            self.new_size = tf.cond( self.index > 250,lambda: self.new_size + 50,lambda: self.new_size)
+            self.new_size = tf.cond( self.index > 300,lambda: self.new_size + 50,lambda: self.new_size)
             # new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
             return tf.image.resize_images(input,(self.new_size,tf.cast(self.new_size,tf.int32)))
