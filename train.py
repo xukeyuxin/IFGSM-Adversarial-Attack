@@ -471,7 +471,7 @@ class Classify(op_base):
 
         def tf_resize(input):
             # self.random_size_step += 1
-            self.new_size = tf.cast( 200 + 50 * (tf.floor(self.index / 50)), tf.int32)
+            self.new_size = tf.cast( 200 + 50 * (tf.floor(self.index / 50)), tf.int32).eval()
 
             # new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
