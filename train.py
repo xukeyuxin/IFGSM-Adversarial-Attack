@@ -741,6 +741,7 @@ class Classify(op_base):
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
+                print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
                 #     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
