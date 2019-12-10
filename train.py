@@ -713,7 +713,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_dense_with_v_res',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test_resize_v_res',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
