@@ -34,7 +34,7 @@ class Classify(op_base):
         self.label_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
         self.index = tf.placeholder(tf.int32,shape = [])
-        self.new_size = tf.placeholder(tf.int32,shape = [2])
+        # self.new_size = tf.placeholder(tf.int32,shape = [2])
         # self.stop_value = tf.placeholder(tf.float32, shape = [])
         self.gaussian_blur = GaussianBlur()
 
@@ -375,7 +375,7 @@ class Classify(op_base):
         # return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
         new_size = np.random.randint(200,400,(2,))
         print(new_size)
-        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.new_size:new_size,self.index:index}
+        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index}
     def init_noise(self):
         ## init
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
@@ -472,17 +472,38 @@ class Classify(op_base):
             #     loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
             #     return loss_resnet_tel_base, r_restel_tar_base
 
+        def preprocess(image, height, width, bbox):
+            # 若没有提供标注框则默认为关注区域为整个图像
+            if bbox is None:
+                bbox = tf.constant([0.0, 0.0, 1.0, 1.0], dtype=tf.float32, shape=[1, 1, 4])
+            # 转换图像数据类型
+            if image.dtype != tf.float32:
+                image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+            # 随机截取图像减小识别物体大小对模型的影响
+            bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(tf.shape(image), bounding_boxes=bbox)
+            distorted_image = tf.slice(image, bbox_begin, bbox_size)
+            # 随机调整图像的大小
+            distorted_image = tf.image.resize_images(distorted_image, (height, width), method=np.random.randint(4))
+            # 随机左右翻转图像
+            distorted_image = tf.image.random_flip_left_right(distorted_image)
+            # 使用一种随机的顺序调整图像色彩
+            # distorted_image = distort_color(distorted_image, np.random.randint(2))
+            return distorted_image
+
         def tf_resize(input):
-            # self.random_size_step += 1
+            height,weight =input.get_shape().as_list()[1:3]
+            crop_weight = 3 / 4 * weight
+            crop_height = 3 / 4 * height
+            new_image = tf.image.random_crop(input,(crop_height,crop_weight))
+            new_image = tf.image.random_flip_up_down(new_image)
+            new_image = tf.image.random_flip_left_right(new_image)
+            new_image = tf.image.transpose_image(new_image)
+            new_image = tf.image.random_brightness(new_image, max_delta = 0.5, seed=None)
+            new_image = tf.image.random_contrast(new_image, 0.1, 0.6, seed=None)
+            # new_image = tf.image.resize_images(new_image,new_size)
 
-            # self.new_size = tf.cast( 200 + 50 * (tf.floor(self.index / 50)), tf.int32).eval()
-
-            # self.new_size = tuple(np.random.randint(200,400,(2)))
-            new_size = (300,300)
+            return tf.clip_by_value(new_image, 0.0, 1.0)
             
-            # new_size = self.sess.run(self.new_size)
-            
-            return tf.image.resize_images(input,new_size)
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
@@ -729,7 +750,8 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_resize_v_res',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result',_image_path)
+        # image_combine_with_noise = os.path.join('data','test_result','test_resize_v_res',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
@@ -754,6 +776,7 @@ class Classify(op_base):
                 print(_t_loss)
                 print(_l_loss)
                 print(_random_size)
+                self.writer(_image_path,write_image)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
