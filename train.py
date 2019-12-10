@@ -33,7 +33,7 @@ class Classify(op_base):
         self.label_feature = tf.placeholder(tf.float32,shape = [2048])
         self.label_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
-        self.index = tf.placeholder(tf.int32,shape = [])
+        self.new_size = tf.placeholder(tf.int32,shape = [2,])
         # self.stop_value = tf.placeholder(tf.float32, shape = [])
         self.gaussian_blur = GaussianBlur()
 
@@ -372,7 +372,8 @@ class Classify(op_base):
         # input_blur_images =  np.expand_dims(cv2.resize(cv2.resize(np.squeeze(input_image),(224,224)),(299,299)),0)
         # return {self.input_images:input_image,self.input_blur_images:input_blur_images,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index} 
         # return {self.input_images:input_image,self.target_feature:target_feature,self.label_feature:label_feature,self.mask:mask,self.index:index} 
-        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.index:index}
+        new_size = np.random.randint(200,400,(2,))
+        return {self.input_images:input_image,self.target_label:target_label,self.label_label:label_label,self.mask:mask,self.new_size:new_size}
     def init_noise(self):
         ## init
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
@@ -477,7 +478,7 @@ class Classify(op_base):
             # self.new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
             
-            new_size = tuple(self.sess.run(tf.random_uniform((2,),minval=200,maxval=400,dtype=tf.int32)))
+            new_size = self.sess.run(self.new_size)
             return tf.image.resize_images(input,new_size)
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
