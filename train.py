@@ -471,9 +471,10 @@ class Classify(op_base):
 
         def tf_resize(input):
             # self.random_size_step += 1
-            self.new_size = tf.cast( 200 + 50 * (tf.floor(self.index / 50)), tf.int32).eval()
 
-            # new_size = tuple(np.random.randint(200,400,(2)))
+            # self.new_size = tf.cast( 200 + 50 * (tf.floor(self.index / 50)), tf.int32).eval()
+
+            self.new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
             return tf.image.resize_images(input,(self.new_size,self.new_size))
             
@@ -741,11 +742,11 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in range(0,501):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss,_t_loss,_l_loss,_new_size = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel,self.new_size],feed_dict = feed_dict)
+                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
-                print(_new_size)
+                print(self.new_size)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
