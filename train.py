@@ -493,7 +493,7 @@ class Classify(op_base):
             # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             clip_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
             random_resize = tf_resize(clip_image)
-            self.new_size = random_resize
+            self.random_size = random_resize.shape
             # print(random_resize.shape)
             logits_resnet_tel_base = _model(random_resize)
             rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
@@ -747,11 +747,11 @@ class Classify(op_base):
             print('start attack %s' % _image_path)
             for i in range(0,501):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
+                _,write_image,_weight,_loss,_t_loss,_l_loss,_random_size = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel,self.random_size],feed_dict = feed_dict)
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
-                
+                print(_random_size)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
