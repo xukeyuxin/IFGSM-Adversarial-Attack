@@ -469,16 +469,11 @@ class Classify(op_base):
             #     return loss_resnet_tel_base, r_restel_tar_base
 
         def tf_resize(input):
-            self.new_size = 0
-            self.new_size = tf.cond( self.index > 50,lambda: self.new_size + 50,lambda: self.new_size)
-            self.new_size = tf.cond( self.index > 100,lambda: self.new_size + 50,lambda: self.new_size)
-            self.new_size = tf.cond( self.index > 150,lambda: self.new_size + 50,lambda: self.new_size)
-            self.new_size = tf.cond( self.index > 200,lambda: self.new_size + 50,lambda: self.new_size)
-            self.new_size = tf.cond( self.index > 250,lambda: self.new_size + 50,lambda: self.new_size)
-            self.new_size = tf.cond( self.index > 300,lambda: self.new_size + 50,lambda: self.new_size)
+            self.random_size_step += 1
+            self.new_size = 200 + 50 * (math.floor(self.random_size_step / 50))
             # new_size = tuple(np.random.randint(200,400,(2)))
             # new_size = (300,300)
-            return tf.image.resize_images(input,(self.new_size,tf.cast(self.new_size,tf.int32)))
+            return tf.image.resize_images(input,(self.new_size,self.new_size))
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
@@ -748,7 +743,7 @@ class Classify(op_base):
                 print(_loss)
                 print(_t_loss)
                 print(_l_loss)
-                print(_new_size)
+                print(self.new_size)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
