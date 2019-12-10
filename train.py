@@ -453,7 +453,9 @@ class Classify(op_base):
             loss_resnet_tel_base = 0.
             if(need_target_cross):
                 target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logit)) 
-                r_restel_tar_base = large_alpha_r(logit) 
+                r_restel_tar_base = 1.
+                print(target_cross_entropy_resnet_tel)
+                # r_restel_tar_base = large_alpha_r(logit) 
                 loss_resnet_tel_base += r_restel_tar_base * target_cross_entropy_resnet_tel
             if(need_label_cross):
                 label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
