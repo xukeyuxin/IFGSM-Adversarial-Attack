@@ -478,7 +478,7 @@ class Classify(op_base):
             if(need_random_process):
                 random_origin_image = random_process(origin_image)
                 random_image = random_process(clip_image)
-                random_noise = random_new_image - random_origin_image
+                random_noise = random_image - random_origin_image
             else:
                 random_image = clip_image
 
@@ -534,6 +534,7 @@ class Classify(op_base):
                 alpha3 = 1 / model_weight_length
                 _loss,self.tmp_noise = item_graph(self.inception_res_model.inception_res,need_random_process = True)
                 _loss_total += _loss * alpha3
+
 
             elif(item == 'inception_v4'):
                 ## inception4
@@ -663,7 +664,7 @@ class Classify(op_base):
             mask = np.ones([1,299,299,1])
             print('start attack %s' % _image_path)
             for i in range(0,101):
-                _image_content = np_random_process(_image_origin)
+                # _image_content = np_random_process(_image_origin)
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 print('loss %s :' % _loss)
