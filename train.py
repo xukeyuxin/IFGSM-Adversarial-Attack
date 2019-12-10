@@ -24,7 +24,7 @@ class Classify(op_base):
         self.summary = []
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        self.model_list = ['inception_v4']
+        self.model_list = ['inception_res']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -447,7 +447,7 @@ class Classify(op_base):
         #     print(new_image)
         #     return new_image
 
-        def cell_graph(logit,need_label_cross = True,need_target_cross = False):
+        def cell_graph(logit,need_label_cross = True,need_target_cross = True):
             r_restel_tar_base = 0.
             r_restel_lab_base = 0.
             loss_resnet_tel_base = 0.
@@ -465,7 +465,9 @@ class Classify(op_base):
             #     loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
             #     return loss_resnet_tel_base, r_restel_tar_base
 
-
+        def tf_resize(input):
+            new_size = tuple(np.random.randint(200,400,(2)))
+            return tf.image.resize_images(input,new_size)
             
         def item_graph(_model,need_change_channel_noise = False,newH = 299, test_crop = 299):
 
@@ -476,7 +478,10 @@ class Classify(op_base):
             else:
                 new_image = self.input_images
             # new_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
-            logits_resnet_tel_base = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.))
+            clip_image = tf.clip_by_value(new_image + tmp_noise,-1.,1.)
+            random_resize = tf_resize(clip_image)
+            print(random_resize.shape)
+            logits_resnet_tel_base = _model(random_resize)
             rgb_loss, rgb_stop_t, rgb_stop_l = cell_graph(logits_resnet_tel_base)
             if(need_change_channel_noise):
                 # logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
@@ -558,6 +563,7 @@ class Classify(op_base):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.inception_res_model.inception_res,need_change_channel_noise=True)
+
                 _loss_total += _loss * alpha3
                 _stop_mix += (stop_t + stop_l)
 
@@ -871,23 +877,29 @@ class Classify(op_base):
         # v_res_old :1184 / 1216
         # v_res_new : / 1216
         print(len(right))
-                
+    
+    
              
 
     def eval_local(self):
         self.sess.run(tf.global_variables_initializer())
         self.saver.restore(self.sess, self.pre_model)
 
-        logit = self.model.logits
-        softmax = tf.nn.softmax(logit)
-        image_list =  [ os.path.join('data/test',path) for path in os.listdir('data/test') ]
-        for item in image_list:
-            content = self.data.rbg2float(cv2.imread(item))
-            image_content = np.expand_dims(content,0)
-            _softmax = self.sess.run(softmax,feed_dict = {self.input_images:image_content})
-            print(item)
-            print(np.sort(np.squeeze(_softmax))[-10:])
-            print(np.argsort(np.squeeze(_softmax))[-10:])
+        
+        # logit = self.model.logits
+        # softmax = tf.nn.softmax(logit)
+        image_list =  [ os.path.join('data/test_local',path) for path in os.listdir('data/test_local') ]
+        while True:
+            for item in image_list:
+                content = self.data.rbg2float(cv2.imread(item))
+                resize_size = tuple(np.random.randint(200,400,(2)))
+                content = cv2.resize(content,resize_size)
+                image_content = np.expand_dims(content,0).astype(np.float32)
+                logit = self.model.inception_res(image_content)
+                softmax = tf.nn.softmax(logit)
+                _softmax = self.sess.run(softmax)
+                print(np.sort(np.squeeze(_softmax))[-5:])
+                print(np.argsort(np.squeeze(_softmax))[-5:])
 
 
 

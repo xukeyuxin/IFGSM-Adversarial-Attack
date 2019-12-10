@@ -68,6 +68,7 @@ class inception(object):
         with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
             with tf.variable_scope('InceptionResnetV2',reuse=tf.AUTO_REUSE):
                 # 8 x 8 x 2080
+                self.pool_feature = net
                 net = slim.avg_pool2d(net, net.get_shape()[1:3], padding='VALID',
                                         scope='AvgPool_1a_out')
                 # 1 x 1 x 2080
