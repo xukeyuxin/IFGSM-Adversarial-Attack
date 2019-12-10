@@ -26,7 +26,7 @@ class Classify(op_base):
         self.random_size_step = 0
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        self.model_list = ['resnet_tel']
+        self.model_list = ['inception_res']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
