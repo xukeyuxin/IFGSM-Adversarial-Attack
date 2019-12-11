@@ -664,10 +664,11 @@ class Classify(op_base):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
-                print('loss %s :' % _loss)
-                print('t_loss %s :' % _t_loss)
-                print('l_loss %s :' % _l_loss)
+                # _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
+                _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
+                # print('loss %s :' % _loss)
+                # print('t_loss %s :' % _t_loss)
+                # print('l_loss %s :' % _l_loss)
                 print('-----------finish %s' % i)
                 # if( _loss <= -120.):
                 #     self.writer(_image_path,write_image)
