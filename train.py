@@ -486,9 +486,31 @@ class Classify(op_base):
             #     # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
             return rgb_loss
 
-                
+        def cell_left_flip_graph(noise):
+            _tmp_noise = flip_left_process(noise)
+            _random_image = flip_left_process(self.input_images)
+            _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            _feat_grad = flip_left_process(_feat_grad)
+            return _feat_grad
 
+        def cell_top_flip_graph(noise):
+            _tmp_noise = flip_up_process(noise)
+            _random_image = flip_up_process(self.input_images)
+            _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            _feat_grad = flip_up_process(_feat_grad)
+            return _feat_grad           
 
+        def cell_base_graph(noise):
+            _tmp_noise = noise
+            _random_image = self.input_images
+            _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            return _feat_grad
 
         def mask_gradient(grads,drop_probs = int(1 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
@@ -573,13 +595,15 @@ class Classify(op_base):
             elif(item == 'resnet_tel'):
 
                 alpha7 = 1 / model_weight_length
+                _feat_grad = tf.zeros((299,299,3))
+                ### base
+                _feat_grad += cell_base_graph(tmp_noise)
+                ### left flip
+                _feat_grad += cell_left_flip_graph(tmp_noise)
+                ### top down flip
+                _feat_grad += cell_top_flip_graph(tmp_noise)
 
-                _tmp_noise = random_process(tmp_noise)
-                _random_image = random_process(self.input_images)
-                _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-                _loss = item_graph(self.resnet_tel_model,_combine_image)
-                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-                feat_grad += grdient_reprocess(_feat_grad) * alpha7
+                feat_grad += (_feat_grad / 3) * alpha7
 
         self.mix_stop = _stop_mix
 
