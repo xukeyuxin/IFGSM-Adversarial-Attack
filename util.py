@@ -46,10 +46,11 @@ def flip_up_process(input):
 
     return random_image
 def image_resize(input,new_size):
+    new_size = tf.convert_to_tensor(new_size)
     random_image = tf.image.resize_images(input,new_size)
 
     return random_image
-    
+
 def np_random_process(input):
     input_shape = input.shape
     input = np.squeeze(input)
