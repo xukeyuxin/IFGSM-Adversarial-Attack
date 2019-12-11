@@ -515,7 +515,7 @@ class Classify(op_base):
 
         def cell_reshape_small_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
-            time = 5
+            time = 3
             mix = 5
             _feat_grad = tf.zeros((1,299,299,3))
             max = time + mix
@@ -534,7 +534,7 @@ class Classify(op_base):
 
         def cell_reshape_big_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
-            time = 5
+            time = 3
             mix = 10
             _feat_grad = tf.zeros((1,299,299,3))
             max = time + mix
@@ -754,6 +754,8 @@ class Classify(op_base):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 # _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
+                if(i % 10 == 0):
+                    print('finish %s / 100' % i )
                 if( i == 100):
                     print('-----------finish %s' % _)
                     self.writer(_image_path,write_image)
