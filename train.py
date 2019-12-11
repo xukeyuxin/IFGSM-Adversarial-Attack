@@ -26,7 +26,7 @@ class Classify(op_base):
         self.random_size_step = 0
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        self.model_list = ['inception_res']
+        self.model_list = ['resnet_tel']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -731,7 +731,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_random',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test_random_restel',_image_path)
         # image_combine_with_noise = os.path.join('data','test_result','test_resize_v_res',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
