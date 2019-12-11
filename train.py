@@ -457,12 +457,10 @@ class Classify(op_base):
             if(need_target_cross):
                 target_cross_entropy_resnet_tel= tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.target_label,logits = logit)) 
                 # r_restel_tar_base = 1.
-                self.target_cross_entropy_resnet_tel = target_cross_entropy_resnet_tel
                 r_restel_tar_base = large_alpha_r(logit) 
                 loss_resnet_tel_base += r_restel_tar_base * target_cross_entropy_resnet_tel
             if(need_label_cross):
                 label_cross_entropy_resnet_tel = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels = self.label_label,logits = logit)) 
-                self.label_cross_entropy_resnet_tel = label_cross_entropy_resnet_tel
                 r_restel_lab_base = tf.cond( label_cross_entropy_resnet_tel < -50.,lambda: 0.,lambda: 1.)
                 loss_resnet_tel_base -= r_restel_lab_base * label_cross_entropy_resnet_tel
 
@@ -493,7 +491,7 @@ class Classify(op_base):
             _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             _feat_grad = flip_left_process(_feat_grad)
-            return _feat_grad
+            return _feat_grad, _loss
 
         def cell_top_flip_graph(noise,model):
             _tmp_noise = flip_up_process(noise)
@@ -502,7 +500,7 @@ class Classify(op_base):
             _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             _feat_grad = flip_up_process(_feat_grad)
-            return _feat_grad  
+            return _feat_grad, _loss
 
         def cell_transpose_graph(noise,model):
             _tmp_noise = flip_left_process(flip_up_process(noise))
@@ -511,12 +509,13 @@ class Classify(op_base):
             _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             _feat_grad = flip_left_process(flip_up_process(_feat_grad))
-            return _feat_grad                     
+            return _feat_grad, _loss                     
 
         def cell_reshape_small_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
             time = 3
             mix = 5
+            _loss = 0.
             _feat_grad = tf.zeros((1,299,299,3))
             max = time + mix
             for i in range(mix,max):
@@ -525,12 +524,14 @@ class Classify(op_base):
                 _tmp_noise = image_resize(noise,(new_height, new_weight))
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-                _loss = item_graph(model,_combine_image)
+                __loss = item_graph(model,_combine_image)
+                _loss += __loss
                 __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _feat_grad += image_resize(__feat_grad,(height, weight))
                 # flip_left_process(flip_up_process(_feat_grad))
             _feat_grad = _feat_grad / time
-            return _feat_grad 
+            _loss = _loss / time
+            return _feat_grad, _loss
 
         def cell_reshape_big_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
@@ -544,12 +545,14 @@ class Classify(op_base):
                 _tmp_noise = image_resize(noise,(new_height, new_weight))
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-                _loss = item_graph(model,_combine_image)
+                __loss = item_graph(model,_combine_image)
+                _loss += __loss
                 __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _feat_grad += image_resize(__feat_grad,(height, weight))
                 # flip_left_process(flip_up_process(_feat_grad))
             _feat_grad = _feat_grad / time
-            return _feat_grad 
+            _loss = _loss / time
+            return _feat_grad, _loss
             
         def cell_base_graph(noise,model):
             _tmp_noise = noise
@@ -557,7 +560,36 @@ class Classify(op_base):
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
             _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-            return _feat_grad
+            return _feat_grad, _loss
+        
+        def cell_ac(tmp_noise,model):
+            _feat_grad = tf.zeros((299,299,3))
+            _loss = tf.constant(0.)
+            ### base
+            base_grad, base_loss = cell_base_graph(tmp_noise,model)
+            _feat_grad += base_grad
+            _loss += base_loss
+            ### left flip
+            left_grad, left_loss =  cell_left_flip_graph(tmp_noise,model)
+            _feat_grad += left_grad
+            _loss += left_loss
+            ### top down flip
+            top_grad, top_loss =  cell_top_flip_graph(tmp_noise,model)
+            _feat_grad += top_grad
+            _loss += top_loss
+            ### transpose flip
+            transpose_grad, transpose_loss =  cell_transpose_graph(tmp_noise,model)
+            _feat_grad += transpose_grad
+            _loss += transpose_loss
+            ### resize small 5 / 10 -> 1
+            small_grad, small_loss =  cell_reshape_small_graph(tmp_noise,model)
+            _feat_grad += small_grad
+            _loss += small_loss
+            ### resize big 1 -> 15 / 10
+            big_grad, big_loss =  cell_reshape_small_graph(tmp_noise,model)
+            _feat_grad += big_grad
+            _loss += big_loss
+            return _feat_grad, _loss
 
         def mask_gradient(grads,drop_probs = int(1 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
@@ -573,6 +605,7 @@ class Classify(op_base):
             gradient_mask = tf.reshape(grads_flatten, [-1,299,299,3])
 
             return gradient_mask
+        
 
         ### softmax loss
         tmp_noise = self.pre_noise(self.mask)
@@ -628,43 +661,17 @@ class Classify(op_base):
                 _stop_mix += (stop_t + stop_l)
 
             elif(item == 'resnet_tel'):
-
                 alpha7 = 1 / model_weight_length
-                _feat_grad = tf.zeros((299,299,3))
-                ### base
-                _feat_grad += cell_base_graph(tmp_noise,self.resnet_tel_model)
-                ### left flip
-                _feat_grad += cell_left_flip_graph(tmp_noise,self.resnet_tel_model)
-                ### top down flip
-                _feat_grad += cell_top_flip_graph(tmp_noise,self.resnet_tel_model)
-                ### transpose flip
-                _feat_grad += cell_transpose_graph(tmp_noise,self.resnet_tel_model)
-                ### resize small 5 / 10 -> 1
-                _feat_grad += cell_reshape_small_graph(tmp_noise,self.resnet_tel_model)
-                ### resize big 1 -> 15 / 10
-                _feat_grad += cell_reshape_big_graph(tmp_noise,self.resnet_tel_model)
-
+                _feat_grad, _loss = cell_ac(tmp_noise,self.resnet_tel_model) 
                 feat_grad += (_feat_grad / 6) * alpha7
+                _loss_total += (_loss / 6) * alpha7
 
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
-                _feat_grad = tf.zeros((299,299,3))
-                ### base
-                _feat_grad += cell_base_graph(tmp_noise,self.inception_res_model.inception_res)
-                ### left flip
-                _feat_grad += cell_left_flip_graph(tmp_noise,self.inception_res_model.inception_res)
-                ### top down flip
-                _feat_grad += cell_top_flip_graph(tmp_noise,self.inception_res_model.inception_res)
-                ### transpose flip
-                _feat_grad += cell_transpose_graph(tmp_noise,self.inception_res_model.inception_res)
-                ### resize small 5 / 10 -> 1
-                _feat_grad += cell_reshape_small_graph(tmp_noise,self.inception_res_model.inception_res)
-                ### resize big 1 -> 15 / 10
-                _feat_grad += cell_reshape_big_graph(tmp_noise,self.inception_res_model.inception_res)
-
+                _feat_grad, _loss = cell_ac(tmp_noise,self.inception_res_model.inception_res) 
                 feat_grad += (_feat_grad / 6) * alpha3
-
+                _loss_total += (_loss / 6) * alpha3
 
         self.mix_stop = _stop_mix
 
@@ -731,7 +738,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_random_restel',_image_path)
+        image_combine_with_noise = os.path.join('data','test_result','test',_image_path)
         # image_combine_with_noise = os.path.join('data','test_result','test_resize_v_res',_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
@@ -752,8 +759,9 @@ class Classify(op_base):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
-                # _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
-                _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
+                _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
+                # _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
+                print(_loss)
                 if(i % 10 == 0):
                     print('finish %s / 100' % i )
                 if( i == 100):
