@@ -38,18 +38,15 @@ def tf_resize(input):
 
 def flip_left_process(input):
     random_image = tf.image.flip_left_right(input)
-
     return random_image
 
 def flip_up_process(input):
     random_image = tf.image.flip_up_down(input)
-
     return random_image
+
 def image_resize(input,new_size):
     new_size = tf.cast(tf.convert_to_tensor(new_size),tf.int32)
-    print(new_size)
     random_image = tf.image.resize_images(input,new_size)
-
     return random_image
 
 def np_random_process(input):

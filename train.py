@@ -26,7 +26,7 @@ class Classify(op_base):
         self.random_size_step = 0
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        self.model_list = ['resnet_tel']
+        self.model_list = ['inception_res']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -486,36 +486,34 @@ class Classify(op_base):
             #     # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
             return rgb_loss
 
-        def cell_left_flip_graph(noise):
+        def cell_left_flip_graph(noise,model):
             _tmp_noise = flip_left_process(noise)
             _random_image = flip_left_process(self.input_images)
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             _feat_grad = flip_left_process(_feat_grad)
             return _feat_grad
 
-        def cell_top_flip_graph(noise):
+        def cell_top_flip_graph(noise,model):
             _tmp_noise = flip_up_process(noise)
             _random_image = flip_up_process(self.input_images)
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             _feat_grad = flip_up_process(_feat_grad)
             return _feat_grad  
 
-        def cell_transpose_graph(noise):
+        def cell_transpose_graph(noise,model):
             _tmp_noise = flip_left_process(flip_up_process(noise))
             _random_image = flip_left_process(flip_up_process(self.input_images))
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             _feat_grad = flip_left_process(flip_up_process(_feat_grad))
-            print('start transpose')
-            print(_feat_grad.shape)
             return _feat_grad                     
 
-        def cell_reshape_small_graph(noise):
+        def cell_reshape_small_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
             time = 5
             mix = 5
@@ -527,16 +525,14 @@ class Classify(op_base):
                 _tmp_noise = image_resize(noise,(new_height, new_weight))
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-                _loss = item_graph(self.resnet_tel_model,_combine_image)
+                _loss = item_graph(model,_combine_image)
                 __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _feat_grad += image_resize(__feat_grad,(height, weight))
                 # flip_left_process(flip_up_process(_feat_grad))
             _feat_grad = _feat_grad / time
-            print('start small')
-            print(_feat_grad.shape)
             return _feat_grad 
 
-        def cell_reshape_big_graph(noise):
+        def cell_reshape_big_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
             time = 5
             mix = 10
@@ -548,20 +544,18 @@ class Classify(op_base):
                 _tmp_noise = image_resize(noise,(new_height, new_weight))
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-                _loss = item_graph(self.resnet_tel_model,_combine_image)
+                _loss = item_graph(model,_combine_image)
                 __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _feat_grad += image_resize(__feat_grad,(height, weight))
                 # flip_left_process(flip_up_process(_feat_grad))
             _feat_grad = _feat_grad / time
-            print('start big')
-            print(_feat_grad.shape)
             return _feat_grad 
             
-        def cell_base_graph(noise):
+        def cell_base_graph(noise,model):
             _tmp_noise = noise
             _random_image = self.input_images
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _loss = item_graph(model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             return _feat_grad
 
@@ -595,20 +589,8 @@ class Classify(op_base):
         feat_grad = tf.zeros((299,299,3))
         model_weight_length = len(self.model_list)
         for item in self.model_list:
-            if(item == 'inception_res'):
-                ## inception_res
-                alpha3 = 1 / model_weight_length
 
-                _tmp_noise = random_process(tmp_noise)
-                _random_image = random_process(self.input_images)
-                _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-
-                _loss = item_graph(self.inception_res_model.inception_res,_combine_image)
-
-                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-                feat_grad += grdient_reprocess(_feat_grad) * alpha3
-
-            elif(item == 'inception_v4'):
+            if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
                 _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4)
@@ -650,19 +632,39 @@ class Classify(op_base):
                 alpha7 = 1 / model_weight_length
                 _feat_grad = tf.zeros((299,299,3))
                 ### base
-                _feat_grad += cell_base_graph(tmp_noise)
+                _feat_grad += cell_base_graph(tmp_noise,self.resnet_tel_model)
                 ### left flip
-                _feat_grad += cell_left_flip_graph(tmp_noise)
+                _feat_grad += cell_left_flip_graph(tmp_noise,self.resnet_tel_model)
                 ### top down flip
-                _feat_grad += cell_top_flip_graph(tmp_noise)
+                _feat_grad += cell_top_flip_graph(tmp_noise,self.resnet_tel_model)
                 ### transpose flip
-                _feat_grad += cell_transpose_graph(tmp_noise)
+                _feat_grad += cell_transpose_graph(tmp_noise,self.resnet_tel_model)
                 ### resize small 5 / 10 -> 1
-                _feat_grad += cell_reshape_small_graph(tmp_noise)
+                _feat_grad += cell_reshape_small_graph(tmp_noise,self.resnet_tel_model)
                 ### resize big 1 -> 15 / 10
-                _feat_grad += cell_reshape_big_graph(tmp_noise)
+                _feat_grad += cell_reshape_big_graph(tmp_noise,self.resnet_tel_model)
 
                 feat_grad += (_feat_grad / 6) * alpha7
+
+            elif(item == 'inception_res'):
+                ## inception_res
+                alpha3 = 1 / model_weight_length
+                _feat_grad = tf.zeros((299,299,3))
+                ### base
+                _feat_grad += cell_base_graph(tmp_noise,self.inception_res_model.inception_res)
+                ### left flip
+                _feat_grad += cell_left_flip_graph(tmp_noise,self.inception_res_model.inception_res)
+                ### top down flip
+                _feat_grad += cell_top_flip_graph(tmp_noise,self.inception_res_model.inception_res)
+                ### transpose flip
+                _feat_grad += cell_transpose_graph(tmp_noise,self.inception_res_model.inception_res)
+                ### resize small 5 / 10 -> 1
+                _feat_grad += cell_reshape_small_graph(tmp_noise,self.inception_res_model.inception_res)
+                ### resize big 1 -> 15 / 10
+                _feat_grad += cell_reshape_big_graph(tmp_noise,self.inception_res_model.inception_res)
+
+                feat_grad += (_feat_grad / 6) * alpha3
+
 
         self.mix_stop = _stop_mix
 
@@ -738,7 +740,6 @@ class Classify(op_base):
         hard_writer = open('hard.txt','a+')
         for _ in tqdm(range(100)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
-            print('start one attack image: %s' %  _image_path)
             label_np = np.array([int(_label)])
             target_np = np.array([int(_target)])
 
@@ -747,24 +748,15 @@ class Classify(op_base):
 
             _image_origin = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
-            print('start attack %s' % _image_path)
             for i in range(0,101):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 # _,write_image,_weight,_loss,_t_loss,_l_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss,self.target_cross_entropy_resnet_tel,self.label_cross_entropy_resnet_tel],feed_dict = feed_dict)
                 _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
-                # print('loss %s :' % _loss)
-                # print('t_loss %s :' % _t_loss)
-                # print('l_loss %s :' % _l_loss)
-                print('-----------finish %s' % i)
-                # if( _loss <= -120.):
-                #     self.writer(_image_path,write_image)
-                #     print('finish one attack  weight: %s with step: %s' %  (_weight,i))
-                #     self.sess.run(self.tf_assign_init())
-                #     break 
-                if( i >= 90):
-                    self.writer(str(i) + '--' + _image_path,write_image)
+                if( i == 100):
+                    print('-----------finish %s' % _)
+                    self.writer(_image_path,write_image)
                     # print('hard one attack weight: %s' %  _weight)
             self.sess.run(self.tf_assign_init())
                     
