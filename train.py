@@ -502,8 +502,61 @@ class Classify(op_base):
             _loss = item_graph(self.resnet_tel_model,_combine_image)
             _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             _feat_grad = flip_up_process(_feat_grad)
-            return _feat_grad           
+            return _feat_grad  
 
+        def cell_transpose_graph(noise):
+            _tmp_noise = flip_left_process(flip_up_process(noise))
+            _random_image = flip_left_process(flip_up_process(self.input_images))
+            _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+            _loss = item_graph(self.resnet_tel_model,_combine_image)
+            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            _feat_grad = flip_left_process(flip_up_process(_feat_grad))
+            print('start transpose')
+            print(_feat_grad.shape)
+            return _feat_grad                     
+
+        def cell_reshape_small_graph(noise):
+            height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
+            time = 5
+            mix = 5
+            _feat_grad = tf.zeros((1,299,299,3))
+            max = time + mix
+            for i in range(mix,max):
+                new_height = (i / max) * height
+                new_weight = (i / max) * height
+                _tmp_noise = image_resize(noise,(new_height, new_weight))
+                _random_image = image_resize(self.input_images,(new_height, new_weight))
+                _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+                _loss = item_graph(self.resnet_tel_model,_combine_image)
+                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _feat_grad += image_resize(_feat_grad,(height, weight))
+                # flip_left_process(flip_up_process(_feat_grad))
+            _feat_grad = _feat_grad / time
+            print('start small')
+            print(_feat_grad.shape)
+            return _feat_grad 
+
+        def cell_reshape_big_graph(noise):
+            height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
+            time = 5
+            mix = 10
+            _feat_grad = tf.zeros((1,299,299,3))
+            max = time + mix
+            for i in range(mix,max):
+                new_height = (i / mix) * height
+                new_weight = (i / mix) * height
+                _tmp_noise = image_resize(noise,(new_height, new_weight))
+                _random_image = image_resize(self.input_images,(new_height, new_weight))
+                _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+                _loss = item_graph(self.resnet_tel_model,_combine_image)
+                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _feat_grad += image_resize(_feat_grad,(height, weight))
+                # flip_left_process(flip_up_process(_feat_grad))
+            _feat_grad = _feat_grad / time
+            print('start big')
+            print(_feat_grad.shape)
+            return _feat_grad 
+            
         def cell_base_graph(noise):
             _tmp_noise = noise
             _random_image = self.input_images
@@ -602,8 +655,14 @@ class Classify(op_base):
                 _feat_grad += cell_left_flip_graph(tmp_noise)
                 ### top down flip
                 _feat_grad += cell_top_flip_graph(tmp_noise)
+                ### transpose flip
+                _feat_grad += cell_transpose_graph(tmp_noise)
+                ### resize small 5 / 10 -> 1
+                _feat_grad += cell_reshape_small_graph(tmp_noise)
+                ### resize big 1 -> 15 / 10
+                _feat_grad += cell_reshape_big_graph(tmp_noise)
 
-                feat_grad += (_feat_grad / 3) * alpha7
+                feat_grad += (_feat_grad / 6) * alpha7
 
         self.mix_stop = _stop_mix
 

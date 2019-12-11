@@ -45,13 +45,17 @@ def flip_up_process(input):
     random_image = tf.image.flip_up_down(input)
 
     return random_image
+def image_resize(input,new_size):
+    random_image = tf.image.resize_images(input,new_size)
 
+    return random_image
+    
 def np_random_process(input):
     input_shape = input.shape
     input = np.squeeze(input)
     ## flip -1,对角， 0 垂直， 1 水平
     # random_flip = np.random.randint(-1,2)
-    random_flip = 1
+    random_flip = 0
     image = cv2.flip(input,random_flip,dst=None)
     # ## random crop 
     # crop_size = np.random.randint(3,5) ## 2, 3
