@@ -38,12 +38,12 @@ def tf_resize(input):
 
 def random_process(input):
     random_image = tf.image.flip_left_right(input)
-    
-    return random_image
-def random_reprocess(noise):
-    new_noise = tf.image.flip_left_right(noise)
 
-    return new_noise
+    return random_image
+def grdient_reprocess(noise):
+    new_grdient = tf.image.flip_left_right(noise)
+
+    return new_grdient
 def np_random_process(input):
     input_shape = input.shape
     input = np.squeeze(input)

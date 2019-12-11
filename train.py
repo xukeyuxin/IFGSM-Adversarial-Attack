@@ -471,19 +471,10 @@ class Classify(op_base):
             #     loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
             #     return loss_resnet_tel_base, r_restel_tar_base
 
-        def item_graph(_model,need_random_process = True,newH = 299, test_crop = 299):
-            origin_image = self.input_images
-            clip_image = self.input_images + self.tmp_noise
-            ### random process
-            if(need_random_process):
-                random_origin_image = random_process(origin_image)
-                random_image = random_process(clip_image)
-                random_noise = random_image - random_origin_image
-            else:
-                random_image = clip_image
-
-            logits_resnet_tel_base = _model(random_image)
+        def item_graph(_model,_combine_image,newH = 299, test_crop = 299):
+            logits_resnet_tel_base = _model(_combine_image)
             rgb_loss,rgb_stop_t,rgb_stop_l  = cell_graph(logits_resnet_tel_base)
+            #### cell noise target attack
             # if(need_change_channel_noise):
             #     # logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
             #     # bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
@@ -493,8 +484,7 @@ class Classify(op_base):
 
             #     return rgb_loss + 1. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
             #     # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
-
-            return rgb_loss, random_noise
+            return rgb_loss
 
                 
 
@@ -527,14 +517,22 @@ class Classify(op_base):
 
         _loss_total = 0
         _stop_mix = 0.
+        feat_grad = tf.zeros((299,299,3))
         model_weight_length = len(self.model_list)
         for item in self.model_list:
             if(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
-                _loss,self.tmp_noise = item_graph(self.inception_res_model.inception_res,need_random_process = True)
-                _loss_total += _loss * alpha3
 
+                _tmp_noise = random_process(self.tmp_noise)
+                _random_image = random_process(self.input_images)
+                _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+
+                _loss = item_graph(self.inception_res_model.inception_res,_combine_image)
+
+                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (299,299,3)
+                
+                feat_grad += grdient_reprocess(_feat_grad) * alpha3
 
             elif(item == 'inception_v4'):
                 ## inception4
@@ -603,12 +601,12 @@ class Classify(op_base):
         # alpha2 = tf.cast(tf.cond(loss_feat_2 > 0.7,lambda: 0.1,lambda: 5.), tf.float32)
         # loss_feat = alpha1 * loss_feat_1 - alpha2 * loss_feat_2
 
-        feat_grad = tf.gradients(ys = _loss_total,xs = self.tmp_noise)[0] ## (299,299,3)
+        
 
         loss1_grad = feat_grad * (1 - momentum) + self.v1_grad * momentum
         
         ### weight loss
-        loss_l2 = tf.sqrt(tf.reduce_sum(tmp_noise**2))
+        loss_l2 = tf.sqrt(tf.reduce_sum(self.tmp_noise**2))
         # loss_tv = self.tv_loss(tmp_noise)
 
         r3 = 1.
