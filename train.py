@@ -506,9 +506,9 @@ class Classify(op_base):
             return gradient_mask
 
         ### softmax loss
-        self.tmp_noise = self.pre_noise(self.mask)
+        tmp_noise = self.pre_noise(self.mask)
 
-        self.combine_images = tf.clip_by_value(self.input_images + self.tmp_noise,-1.,1.)
+        self.combine_images = tf.clip_by_value(self.input_images + tmp_noise,-1.,1.)
         # self.combine_images_change_channels = tf.clip_by_value(self.input_images[...,::-1] + tmp_noise,-1.,1.)
         
         # with tf.control_dependencies([self.combine_images]):
@@ -524,13 +524,13 @@ class Classify(op_base):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
 
-                _tmp_noise = random_process(self.tmp_noise)
+                _tmp_noise = random_process(tmp_noise)
                 _random_image = random_process(self.input_images)
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
                 _loss = item_graph(self.inception_res_model.inception_res,_combine_image)
 
-                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (299,299,3)
+                _feat_grad = tf.squeeze( tf.gradients(ys = _loss,xs = _tmp_noise)[0] ) ## (299,299,3)
                 print(_feat_grad)
                 feat_grad += grdient_reprocess(_feat_grad) * alpha3
 
