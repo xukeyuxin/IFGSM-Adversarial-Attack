@@ -530,8 +530,7 @@ class Classify(op_base):
 
                 _loss = item_graph(self.inception_res_model.inception_res,_combine_image)
 
-                _feat_grad = tf.squeeze( tf.gradients(ys = _loss,xs = _tmp_noise)[0] ) ## (299,299,3)
-                print(_feat_grad)
+                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 feat_grad += grdient_reprocess(_feat_grad) * alpha3
 
             elif(item == 'inception_v4'):
