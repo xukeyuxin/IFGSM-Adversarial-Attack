@@ -528,8 +528,8 @@ class Classify(op_base):
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
                 _loss = item_graph(self.resnet_tel_model,_combine_image)
-                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-                _feat_grad += image_resize(_feat_grad,(height, weight))
+                __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _feat_grad += image_resize(__feat_grad,(height, weight))
                 # flip_left_process(flip_up_process(_feat_grad))
             _feat_grad = _feat_grad / time
             print('start small')
@@ -549,8 +549,8 @@ class Classify(op_base):
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
                 _loss = item_graph(self.resnet_tel_model,_combine_image)
-                _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-                _feat_grad += image_resize(_feat_grad,(height, weight))
+                __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _feat_grad += image_resize(__feat_grad,(height, weight))
                 # flip_left_process(flip_up_process(_feat_grad))
             _feat_grad = _feat_grad / time
             print('start big')
