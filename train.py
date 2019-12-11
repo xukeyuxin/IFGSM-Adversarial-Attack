@@ -677,7 +677,7 @@ class Classify(op_base):
                 #     break 
                 if( i >= 90):
                     self.writer(str(i) + '--' + _image_path,write_image)
-                    print('hard one attack weight: %s' %  _weight)
+                    # print('hard one attack weight: %s' %  _weight)
             self.sess.run(self.tf_assign_init())
                     
 
