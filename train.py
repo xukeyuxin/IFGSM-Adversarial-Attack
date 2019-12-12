@@ -635,7 +635,7 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
-                _feat_grad, _loss = cell_ac(tmp_noise,self.inception_res_model.inception_res) 
+                _feat_grad, _loss = cell_ac(tmp_noise,self.inception_v4_model.inception_v4) 
                 feat_grad += _feat_grad * alpha1
                 _loss_total += _loss * alpha1
 
