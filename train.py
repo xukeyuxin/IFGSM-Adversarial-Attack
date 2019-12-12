@@ -630,13 +630,13 @@ class Classify(op_base):
             _feat_grad += base_grad
             _loss += base_loss
             ### left flip
-            left_grad, left_loss =  cell_left_flip_graph(tmp_noise,model)
-            _feat_grad += left_grad
-            _loss += left_loss
-            ### top down flip
-            top_grad, top_loss =  cell_top_flip_graph(tmp_noise,model)
-            _feat_grad += top_grad
-            _loss += top_loss
+            # left_grad, left_loss =  cell_left_flip_graph(tmp_noise,model)
+            # _feat_grad += left_grad
+            # _loss += left_loss
+            # ### top down flip
+            # top_grad, top_loss =  cell_top_flip_graph(tmp_noise,model)
+            # _feat_grad += top_grad
+            # _loss += top_loss
             ### transpose flip
             transpose_grad, transpose_loss =  cell_transpose_graph(tmp_noise,model)
             _feat_grad += transpose_grad
@@ -649,7 +649,7 @@ class Classify(op_base):
             big_grad, big_loss =  cell_reshape_small_graph(tmp_noise,model)
             _feat_grad += big_grad
             _loss += big_loss
-            return _feat_grad / 6 , _loss / 6
+            return _feat_grad / 4 , _loss / 4
 
         def mask_gradient(grads,drop_probs = int(1 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
@@ -814,7 +814,7 @@ class Classify(op_base):
 
             _image_origin = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
-            for i in range(0,21):
+            for i in range(0,41):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
