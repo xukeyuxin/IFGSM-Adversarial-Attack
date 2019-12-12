@@ -814,7 +814,7 @@ class Classify(op_base):
 
             _image_origin = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
-            for i in range(0,41):
+            for i in range(0,21):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
@@ -823,7 +823,7 @@ class Classify(op_base):
                 print(_loss)
                 if(i % 10 == 0):
                     print('finish %s / 20' % i )
-                if( i == 40):
+                if( i == 20):
                     print('-----------finish %s' % _)
                     self.writer(_image_path,write_image)
                     # print('hard one attack weight: %s' %  _weight)
