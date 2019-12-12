@@ -646,7 +646,7 @@ class Classify(op_base):
             _feat_grad += small_grad
             _loss += small_loss
             ### resize big 1 -> 15 / 10
-            big_grad, big_loss =  cell_reshape_small_graph(tmp_noise,model)
+            big_grad, big_loss =  cell_reshape_big_graph(tmp_noise,model)
             _feat_grad += big_grad
             _loss += big_loss
             return _feat_grad / 4 , _loss / 4
