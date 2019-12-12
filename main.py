@@ -42,7 +42,7 @@ parser.add_argument("-ldf", "--lr_decay_factor", type=float, default=0.1)
 parser.add_argument("-om", "--opt_momentum", type=float, default=0.9)
 parser.add_argument("-wd", "--weight_decay", type=float, default=1e-4)
 parser.add_argument("-ng", "--num_gpu", type=int, default=1)
-parser.add_argument("-gi", "--gpu_index", type=str, default='2')
+parser.add_argument("-gi", "--gpu_index", type=str, default='0')
 
 
 
