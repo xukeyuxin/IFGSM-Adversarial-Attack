@@ -26,7 +26,7 @@ class Classify(op_base):
         self.random_size_step = 0
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        self.model_list = ['inception_v4']
+        self.model_list = ['inception_res']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -488,71 +488,122 @@ class Classify(op_base):
             _tmp_noise = flip_left_process(noise)
             _random_image = flip_left_process(self.input_images)
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(model,_combine_image)
-            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-            _feat_grad = flip_left_process(_feat_grad)
-            return _feat_grad, _loss
+
+            ### base image
+            image_loss = item_graph(model,_combine_image)
+            image_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            image_feat_grad = flip_left_process(_feat_grad)
+
+            ### base noise
+            noise_loss = item_graph(model,_tmp_noise)
+            noise_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            noise_feat_grad = flip_left_process(_feat_grad)
+
+            return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
 
         def cell_top_flip_graph(noise,model):
             _tmp_noise = flip_up_process(noise)
             _random_image = flip_up_process(self.input_images)
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(model,_combine_image)
-            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-            _feat_grad = flip_up_process(_feat_grad)
-            return _feat_grad, _loss
+
+            ### base image
+            image_loss = item_graph(model,_combine_image)
+            image_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            image_feat_grad = flip_up_process(_feat_grad)
+
+            ### base noise
+            noise_loss = item_graph(model,_tmp_noise)
+            noise_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            noise_feat_grad = flip_up_process(_feat_grad)
+
+            return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
+
 
         def cell_transpose_graph(noise,model):
-            _tmp_noise = flip_left_process(flip_up_process(noise))
-            _random_image = flip_left_process(flip_up_process(self.input_images))
+            _tmp_noise = flip_transpose(flip_up_process(noise))
+            _random_image = flip_transpose(flip_up_process(self.input_images))
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(model,_combine_image)
-            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-            _feat_grad = flip_left_process(flip_up_process(_feat_grad))
-            return _feat_grad, _loss                     
+
+            ### base image
+            image_loss = item_graph(model,_combine_image)
+            image_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            image_feat_grad = flip_transpose(_feat_grad)
+
+            ### base noise
+            noise_loss = item_graph(model,_tmp_noise)
+            noise_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            noise_feat_grad = flip_transpose(_feat_grad)
+
+            return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
 
         def cell_reshape_small_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
             time = 3
-            mix = 5
-            _loss = 0.
-            _feat_grad = tf.zeros((1,299,299,3))
-            max = time + mix
-            for i in range(mix,max):
+            min = 5
+            _image_loss = 0.
+            _image_feat_grad = tf.zeros((1,299,299,3))
+
+            _noise_loss = 0.
+            _noise_feat_grad = tf.zeros((1,299,299,3))
+
+            max = time + min
+            for i in range(min,max):
                 new_height = (i / max) * height
                 new_weight = (i / max) * height
                 _tmp_noise = image_resize(noise,(new_height, new_weight))
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-                __loss = item_graph(model,_combine_image)
-                _loss += __loss
-                __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-                _feat_grad += image_resize(__feat_grad,(height, weight))
+
+
+                __image_loss = item_graph(model,_combine_image)
+                _image_loss += __image_loss
+                __image_feat_grad = tf.gradients(ys = __image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _image_feat_grad += image_resize(__image_feat_grad,(height, weight))
+
+                __noise_loss = item_graph(model,_tmp_noise)
+                _noise_loss += __noise_loss
+                __noise_feat_grad = tf.gradients(ys = __noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _noise_feat_grad += image_resize(__noise_feat_grad,(height, weight))
+
                 # flip_left_process(flip_up_process(_feat_grad))
-            _feat_grad = _feat_grad / time
-            _loss = _loss / time
-            return _feat_grad, _loss
+            _feat_grad = 2 * (0.5 * _image_feat_grad + 0.5 * _noise_feat_grad) / time
+            _loss = (0.5 * _image_loss + 0.5 * _noise_loss) / time
+            return  _feat_grad,_loss 
 
         def cell_reshape_big_graph(noise,model):
             height,weight = tf.squeeze(noise).get_shape().as_list()[:2]
             time = 3
-            mix = 10
-            _feat_grad = tf.zeros((1,299,299,3))
-            max = time + mix
-            for i in range(mix,max):
-                new_height = (i / mix) * height
-                new_weight = (i / mix) * height
+            min = 10
+            _image_loss = 0.
+            _image_feat_grad = tf.zeros((1,299,299,3))
+
+            _noise_loss = 0.
+            _noise_feat_grad = tf.zeros((1,299,299,3))
+
+            max = time + min
+            for i in range(min,max):
+                new_height = (i / min) * height
+                new_weight = (i / min) * height
                 _tmp_noise = image_resize(noise,(new_height, new_weight))
                 _random_image = image_resize(self.input_images,(new_height, new_weight))
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-                __loss = item_graph(model,_combine_image)
-                _loss += __loss
-                __feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-                _feat_grad += image_resize(__feat_grad,(height, weight))
+
+
+                __image_loss = item_graph(model,_combine_image)
+                _image_loss += __image_loss
+                __image_feat_grad = tf.gradients(ys = __image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _image_feat_grad += image_resize(__image_feat_grad,(height, weight))
+
+                __noise_loss = item_graph(model,_tmp_noise)
+                _noise_loss += __noise_loss
+                __noise_feat_grad = tf.gradients(ys = __noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+                _noise_feat_grad += image_resize(__noise_feat_grad,(height, weight))
+
                 # flip_left_process(flip_up_process(_feat_grad))
-            _feat_grad = _feat_grad / time
-            _loss = _loss / time
-            return _feat_grad, _loss
+            _feat_grad = 2 * (0.5 * _image_feat_grad + 0.5 * _noise_feat_grad) / time
+            _loss = (0.5 * _image_loss + 0.5 * _noise_loss) / time
+            return  _feat_grad,_loss 
+
         
         def cell_random_noise_graph(noise,model):
             random_noise = tf.random_normal([2, 3], stddev=1)

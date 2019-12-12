@@ -44,6 +44,10 @@ def flip_up_process(input):
     random_image = tf.image.flip_up_down(input)
     return random_image
 
+def flip_transpose(input):
+    random_image = tf.image.transpose_image(new_image)
+    return random_image
+
 def image_resize(input,new_size):
     new_size = tf.cast(tf.convert_to_tensor(new_size),tf.int32)
     random_image = tf.image.resize_images(input,new_size)
