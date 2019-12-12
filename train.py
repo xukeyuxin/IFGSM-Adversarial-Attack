@@ -668,7 +668,8 @@ class Classify(op_base):
         
 
         ### softmax loss
-        tmp_noise = self.pre_noise(self.mask)
+        # tmp_noise = self.pre_noise(self.mask)
+        tmp_noise = self.tmp_noise
 
         self.combine_images = tf.clip_by_value(self.input_images + tmp_noise,-1.,1.)
         # self.combine_images_change_channels = tf.clip_by_value(self.input_images[...,::-1] + tmp_noise,-1.,1.)
