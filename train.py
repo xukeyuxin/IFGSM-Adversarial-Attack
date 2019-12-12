@@ -26,7 +26,7 @@ class Classify(op_base):
         self.random_size_step = 0
         # self.model_list = ['inception_v4','inception_v3','inception_res','resnet_50','resnet_101','resnet_152','resnet_tel']
         # self.model_list = ['inception_v4','inception_res','resnet_tel']
-        self.model_list = ['resnet_tel']
+        self.model_list = ['inception_v4']
         self.input_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.input_blur_images = tf.placeholder(tf.float32,shape = [None,self.image_height,self.image_weight,3])
         self.target_feature = tf.placeholder(tf.float32,shape = [2048])
@@ -553,6 +553,15 @@ class Classify(op_base):
             _feat_grad = _feat_grad / time
             _loss = _loss / time
             return _feat_grad, _loss
+        
+        def cell_random_noise_graph(noise,model):
+            random_noise = tf.random_normal([2, 3], stddev=1)
+            _random_image = flip_left_process(flip_up_process(self.input_images))
+            _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+            _loss = item_graph(model,_combine_image)
+            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            _feat_grad = flip_left_process(flip_up_process(_feat_grad))
+            return _feat_grad, _loss  
             
         def cell_base_graph(noise,model):
             _tmp_noise = noise
@@ -589,7 +598,7 @@ class Classify(op_base):
             big_grad, big_loss =  cell_reshape_small_graph(tmp_noise,model)
             _feat_grad += big_grad
             _loss += big_loss
-            return _feat_grad, _loss
+            return _feat_grad / 6 , _loss / 6
 
         def mask_gradient(grads,drop_probs = int(1 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
@@ -626,10 +635,9 @@ class Classify(op_base):
             if(item == 'inception_v4'):
                 ## inception4
                 alpha1 = 1 / model_weight_length
-                _loss,stop_t,stop_l = item_graph(self.inception_v4_model.inception_v4)
+                _feat_grad, _loss = cell_ac(tmp_noise,self.inception_res_model.inception_res) 
+                feat_grad += _feat_grad * alpha1
                 _loss_total += _loss * alpha1
-                _stop_mix += (stop_t + stop_l)
-                self.inception_v4_stop_mix = stop_t + stop_l
 
             elif(item == 'inception_v3'):
                 ## inception3
@@ -663,15 +671,15 @@ class Classify(op_base):
             elif(item == 'resnet_tel'):
                 alpha7 = 1 / model_weight_length
                 _feat_grad, _loss = cell_ac(tmp_noise,self.resnet_tel_model) 
-                feat_grad += (_feat_grad / 6) * alpha7
-                _loss_total += (_loss / 6) * alpha7
+                feat_grad += _feat_grad * alpha7
+                _loss_total += _loss * alpha7
 
             elif(item == 'inception_res'):
                 ## inception_res
                 alpha3 = 1 / model_weight_length
                 _feat_grad, _loss = cell_ac(tmp_noise,self.inception_res_model.inception_res) 
-                feat_grad += (_feat_grad / 6) * alpha3
-                _loss_total += (_loss / 6) * alpha3
+                feat_grad += _feat_grad * alpha3
+                _loss_total += _loss * alpha3
 
         self.mix_stop = _stop_mix
 
@@ -725,7 +733,7 @@ class Classify(op_base):
 
         update_noise = self.tmp_noise - lr * tf.sign(mix_grad_mask)
         update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
-        update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
+        update_noise = tf.clip_by_value(update_noise,-0.125, 0.125)
         # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
 
         self.total_loss = _loss_total
@@ -755,7 +763,7 @@ class Classify(op_base):
 
             _image_origin = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
-            for i in range(0,101):
+            for i in range(0,81):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
@@ -764,7 +772,7 @@ class Classify(op_base):
                 print(_loss)
                 if(i % 10 == 0):
                     print('finish %s / 100' % i )
-                if( i == 100):
+                if( i == 80):
                     print('-----------finish %s' % _)
                     self.writer(_image_path,write_image)
                     # print('hard one attack weight: %s' %  _weight)
