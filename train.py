@@ -823,7 +823,7 @@ class Classify(op_base):
                 print(_loss)
                 if(i % 10 == 0):
                     print('finish %s / 20' % i )
-                if( i == 20):
+                if( i == 40):
                     print('-----------finish %s' % _)
                     self.writer(_image_path,write_image)
                     # print('hard one attack weight: %s' %  _weight)
