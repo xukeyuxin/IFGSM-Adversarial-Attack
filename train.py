@@ -491,12 +491,12 @@ class Classify(op_base):
 
             ### base image
             image_loss = item_graph(model,_combine_image)
-            image_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             image_feat_grad = flip_left_process(_feat_grad)
 
             ### base noise
             noise_loss = item_graph(model,_tmp_noise)
-            noise_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             noise_feat_grad = flip_left_process(_feat_grad)
 
             return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
@@ -508,12 +508,12 @@ class Classify(op_base):
 
             ### base image
             image_loss = item_graph(model,_combine_image)
-            image_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             image_feat_grad = flip_up_process(_feat_grad)
 
             ### base noise
             noise_loss = item_graph(model,_tmp_noise)
-            noise_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             noise_feat_grad = flip_up_process(_feat_grad)
 
             return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
@@ -526,12 +526,12 @@ class Classify(op_base):
 
             ### base image
             image_loss = item_graph(model,_combine_image)
-            image_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             image_feat_grad = flip_transpose(_feat_grad)
 
             ### base noise
             noise_loss = item_graph(model,_tmp_noise)
-            noise_feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             noise_feat_grad = flip_transpose(_feat_grad)
 
             return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
