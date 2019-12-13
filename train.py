@@ -863,9 +863,10 @@ class Classify(op_base):
                 print(_loss)
                 if(i % 10 == 0):
                     print('finish %s / 20' % i )
-                if( i == 20):
+                if( i == 0):
                     print('-----------finish %s' % _)
                     self.writer(_image_path,write_image)
+                    return 
                     # print('hard one attack weight: %s' %  _weight)
             self.sess.run(self.tf_assign_init())
                     
