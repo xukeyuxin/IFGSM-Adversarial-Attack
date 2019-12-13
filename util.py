@@ -44,6 +44,15 @@ def flip_up_process(input):
     random_image = tf.image.flip_up_down(input)
     return random_image
 
+def brightness_up_process(input,alpha = 0.5):
+    random_image = tf.image.adjust_brightness(input, alpha)
+    return random_image
+
+def contrast_down_process(input,alpha = -5):
+    random_image = tf.image.adjust_contrast(input, alpha)
+    return random_image
+    
+
 def flip_transpose(input):
     random_image = tf.image.transpose_image(input)
     return random_image
