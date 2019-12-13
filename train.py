@@ -831,10 +831,12 @@ class Classify(op_base):
         update_grad = tf.assign(self.v1_grad,loss1_grad)
         return tf.group(update_value,update_grad)
 
-    def writer(self,_image_path,write_image):
+    def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
         write_image = self.float2rgb(np.squeeze(write_image))
-        image_combine_with_noise = os.path.join('data','test_result','test_random_restel',_image_path)
-        # image_combine_with_noise = os.path.join('data','test_result','test_resize_v_res',_image_path)
+        total_path = os.path.join('data','test_result',root_dir)
+        if(not os.path.exists(total_path)):
+            os.mkdir(total_path)
+        image_combine_with_noise = os.path.join(total_path,_image_path)
         cv2.imwrite(image_combine_with_noise,write_image)
 
     def attack(self):
@@ -859,20 +861,19 @@ class Classify(op_base):
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
                 # _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
                 print(_loss)
-                if(i % 10 == 0):
-                    print('finish %s / 20' % i )
-                if( i == 0):
-                    print('-----------finish %s' % _)
-                    self.writer('00' + _image_path,write_image)
-                    # print('hard one attack weight: %s' %  _weight)
                 if( i == 1):
-                    print('-----------finish %s' % _)
-                    self.writer('01' + _image_path,write_image)
-                    # print('hard one attack weight: %s' %  _weight)
+                    self.writer(_image_path,write_image,root_dir = 'test_random_restel_1')
                 if( i == 2):
+                    self.writer(_image_path,write_image,root_dir = 'test_random_restel_2')
+                if( i == 5):
+                    self.writer(_image_path,write_image,root_dir = 'test_random_restel_5')
+                if( i == 10):
+                    self.writer(_image_path,write_image,root_dir = 'test_random_restel_10')
+                if( i == 15):
+                    self.writer(_image_path,write_image,root_dir = 'test_random_restel_15')
+                if( i == 20):
                     print('-----------finish %s' % _)
-                    self.writer('02' + _image_path,write_image)
-                    # print('hard one attack weight: %s' %  _weight)
+                    self.writer(_image_path,write_image,root_dir = 'test_random_restel_20')
             self.sess.run(self.tf_assign_init())
                     
 
