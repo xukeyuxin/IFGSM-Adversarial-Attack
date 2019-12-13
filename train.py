@@ -396,10 +396,11 @@ class Classify(op_base):
         base_size = 299 * tf.ones((2),dtype = tf.int32)
 
         new_img = tf.image.resize_images(tf.image.resize_images(task_image,small_size),base_size)
-        change = new_img.astype(tf.int32) - task_image.astype(tf.int32)
-        change = tf.clip_by_value(change,-32,32)
-
-        update_tmp_noise = tf.assign(self.tmp_noise,change)
+        change = tf.cast(new_img,tf.int32) - tf.cast(task_image,tf.int32)
+        change = tf.cast(tf.clip_by_value(change,-32,32), tf.float32)
+        
+        float_change = change / 255. 
+        update_tmp_noise = tf.assign(self.tmp_noise,float_change)
         return update_tmp_noise
 
 
