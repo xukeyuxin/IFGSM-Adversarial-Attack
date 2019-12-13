@@ -807,15 +807,18 @@ class Classify(op_base):
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
         # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        # loss_weight = r3 * 0.025 * loss_l2 
-        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        loss_weight = r3 * 0.025 * loss_l2 
+        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
 
-        ### finetune grad mask + l2_loss
+        ## finetune grad mask + l2_loss
         # loss1_grad_mask = mask_gradient(loss1_grad)
         # mix_grad_mask = loss1_grad_mask + finetune_grad
 
+        ## finetune grad mask + l2_loss
+        mix_grad_mask = loss1_grad + finetune_grad
+
         ### mix_grad mask
-        mix_grad_mask = mask_gradient(loss1_grad)
+        # mix_grad_mask = mask_gradient(loss1_grad)
 
         ### gradient_mask
         update_noise = self.tmp_noise - lr * tf.sign(mix_grad_mask)
@@ -833,7 +836,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
         write_image = self.float2rgb(np.squeeze(write_image))
-        total_path = os.path.join('data','test_result',root_dir)
+        total_path = os.path.join('data','test_result_2',root_dir)
         if(not os.path.exists(total_path)):
             os.mkdir(total_path)
         image_combine_with_noise = os.path.join(total_path,_image_path)
