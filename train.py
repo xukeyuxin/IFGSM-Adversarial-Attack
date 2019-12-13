@@ -382,12 +382,26 @@ class Classify(op_base):
         self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
         # self.tmp_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(0.))
         self.v1_grad = tf.get_variable('noise_grad',shape = [1,299,299,3],initializer= tf.constant_initializer(grad_init))
+
     def tf_assign_init(self):
         tmp_noise_init = self.xavier_initializer([1,299,299,3])
         grad_init = tf.constant(0.,shape = [1,299,299,3])
         update_tmp_noise = tf.assign(self.tmp_noise,tmp_noise_init)
         update_v1_grad = tf.assign(self.v1_grad,grad_init)
         return tf.group(update_tmp_noise,update_v1_grad)
+
+    def tf_init_resize_noise(self,task_image):
+        task_image = tf.squeeze(task_image)
+        small_size = 16 * tf.ones((299,299))
+        base_size = 299 * tf.ones((299,299))
+
+        new_img = tf.image.resize_images(tf.image.resize_images(task_image,small_size),base_size)
+        change = new_img.astype(tf.int32) - task_image.astype(tf.int32)
+        change = tf.clip_by_value(change,-32,32)
+
+        update_tmp_noise = tf.assign(self.tmp_noise,tmp_noise_init)
+        return update_tmp_noise
+
 
     def tf_preprocess(self,img,lar_size,out_size):
         rawH = self.image_height
@@ -519,9 +533,26 @@ class Classify(op_base):
             return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
 
 
-        def cell_transpose_graph(noise,model):
+        def cell_clip_graph(noise,model):
             _tmp_noise = flip_transpose(flip_up_process(noise))
             _random_image = flip_transpose(flip_up_process(self.input_images))
+            _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+
+            ### base image
+            image_loss = item_graph(model,_combine_image)
+            image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            image_feat_grad = flip_transpose(image_feat_grad)
+
+            ### base noise
+            noise_loss = item_graph(model,_tmp_noise)
+            noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+            noise_feat_grad = flip_transpose(noise_feat_grad)
+
+            return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
+
+        def cell_transpose_graph(noise,model):
+            _tmp_noise = flip_transpose(noise)
+            _random_image = flip_transpose(self.input_images)
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
             ### base image
@@ -637,6 +668,10 @@ class Classify(op_base):
             # top_grad, top_loss =  cell_top_flip_graph(tmp_noise,model)
             # _feat_grad += top_grad
             # _loss += top_loss
+            ### clip
+            transpose_grad, transpose_loss =  cell_transpose_graph(tmp_noise,model)
+            _feat_grad += transpose_grad
+            _loss += transpose_loss
             ### transpose flip
             transpose_grad, transpose_loss =  cell_transpose_graph(tmp_noise,model)
             _feat_grad += transpose_grad
@@ -807,6 +842,8 @@ class Classify(op_base):
         hard_writer = open('hard.txt','a+')
         for _ in tqdm(range(100)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
+
+            self.sess.run(self.tf_init_resize_noise(_image_content))
             label_np = np.array([int(_label)])
             target_np = np.array([int(_target)])
 
