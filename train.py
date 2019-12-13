@@ -399,7 +399,7 @@ class Classify(op_base):
         change = new_img.astype(tf.int32) - task_image.astype(tf.int32)
         change = tf.clip_by_value(change,-32,32)
 
-        update_tmp_noise = tf.assign(self.tmp_noise,tmp_noise_init)
+        update_tmp_noise = tf.assign(self.tmp_noise,change)
         return update_tmp_noise
 
 
