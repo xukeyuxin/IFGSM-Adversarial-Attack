@@ -858,11 +858,10 @@ class Classify(op_base):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
                 # _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
-                print(_weight)
                 print(_loss)
                 if(i % 10 == 0):
                     print('finish %s / 20' % i )
-                if( i == 20):
+                if( i == 10):
                     print('-----------finish %s' % _)
                     self.writer(_image_path,write_image)
                     # print('hard one attack weight: %s' %  _weight)
