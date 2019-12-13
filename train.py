@@ -392,8 +392,8 @@ class Classify(op_base):
 
     def tf_init_resize_noise(self,task_image):
         task_image = tf.squeeze(task_image)
-        small_size = 16 * tf.ones((299,299))
-        base_size = 299 * tf.ones((299,299))
+        small_size = 16 * tf.ones((2))
+        base_size = 299 * tf.ones((2))
 
         new_img = tf.image.resize_images(tf.image.resize_images(task_image,small_size),base_size)
         change = new_img.astype(tf.int32) - task_image.astype(tf.int32)
