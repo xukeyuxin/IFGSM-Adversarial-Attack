@@ -807,19 +807,17 @@ class Classify(op_base):
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
         # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        loss_weight = r3 * 0.025 * loss_l2 
-
-        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
-        
-        ### mix_grad mask
-        mix_grad_mask = mask_gradient(finetune_grad + loss1_grad)
+        # loss_weight = r3 * 0.025 * loss_l2 
+        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
 
         ### finetune grad mask + l2_loss
         # loss1_grad_mask = mask_gradient(loss1_grad)
         # mix_grad_mask = loss1_grad_mask + finetune_grad
 
-        ### gradient_mask
+        ### mix_grad mask
+        mix_grad_mask = mask_gradient(loss1_grad)
 
+        ### gradient_mask
         update_noise = self.tmp_noise - lr * tf.sign(mix_grad_mask)
         update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
         update_noise = tf.clip_by_value(update_noise,-0.125, 0.125)
@@ -860,13 +858,13 @@ class Classify(op_base):
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
                 # _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
+                print(_weight)
                 print(_loss)
                 if(i % 10 == 0):
                     print('finish %s / 20' % i )
-                if( i == 0):
+                if( i == 20):
                     print('-----------finish %s' % _)
                     self.writer(_image_path,write_image)
-                    return 
                     # print('hard one attack weight: %s' %  _weight)
             self.sess.run(self.tf_assign_init())
                     
