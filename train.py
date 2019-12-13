@@ -857,14 +857,14 @@ class Classify(op_base):
 
             _image_origin = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
-            for i in range(0,41):
+            for i in range(0,61):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
                 # _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
                 print(_loss)
-                i_list = range(20,40)
+                i_list = range(20,60)
                 if( i in i_list):
                     
                     self.writer(_image_path,write_image,root_dir = 'test_random_restel_%s' % i)
