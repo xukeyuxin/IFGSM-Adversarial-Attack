@@ -688,7 +688,7 @@ class Classify(op_base):
             _loss += big_loss
             return _feat_grad / 4 , _loss / 4
 
-        def mask_gradient(grads,drop_probs = int(1 * 299 * 299),flatten_shape = [299*299,3]):
+        def mask_gradient(grads,drop_probs = int(0.01 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
             grads_flatten = tf.reshape(grads,flatten_shape)
 
@@ -815,10 +815,10 @@ class Classify(op_base):
         # mix_grad_mask = loss1_grad_mask + finetune_grad
 
         ## finetune grad mask + l2_loss
-        mix_grad_mask = loss1_grad + finetune_grad
+        # mix_grad_mask = loss1_grad + finetune_grad
 
-        ### mix_grad mask
-        # mix_grad_mask = mask_gradient(loss1_grad)
+        ## mix_grad mask
+        mix_grad_mask = mask_gradient(loss1_grad)
 
         ### gradient_mask
         update_noise = self.tmp_noise - lr * tf.sign(mix_grad_mask)
@@ -836,7 +836,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
         write_image = self.float2rgb(np.squeeze(write_image))
-        total_path = os.path.join('data','test_result_2',root_dir)
+        total_path = os.path.join('data','test_result',root_dir)
         if(not os.path.exists(total_path)):
             os.mkdir(total_path)
         image_combine_with_noise = os.path.join(total_path,_image_path)
