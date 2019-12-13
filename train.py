@@ -881,7 +881,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
         write_image = self.float2rgb(np.squeeze(write_image))
-        total_path = os.path.join('data','test_result',root_dir)
+        total_path = os.path.join('data','test_result_3',root_dir)
         if(not os.path.exists(total_path)):
             os.mkdir(total_path)
         image_combine_with_noise = os.path.join(total_path,_image_path)
@@ -909,7 +909,7 @@ class Classify(op_base):
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
                 # _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
                 print(_loss)
-                i_list = range(20,60)
+                i_list = range(10,60)
                 if( i in i_list):
                     self.writer(_image_path,write_image,root_dir = 'test_random_restel_%s' % i)
 
