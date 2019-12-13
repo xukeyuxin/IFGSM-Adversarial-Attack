@@ -807,8 +807,8 @@ class Classify(op_base):
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
         # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        loss_weight = r3 * 0.025 * loss_l2 
-        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        # loss_weight = r3 * 0.025 * loss_l2 
+        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
 
         ## finetune grad mask + l2_loss
         # loss1_grad_mask = mask_gradient(loss1_grad)
