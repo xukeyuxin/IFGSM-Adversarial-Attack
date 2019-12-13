@@ -890,7 +890,7 @@ class Classify(op_base):
     def attack(self):
         train_op = self.attack_graph()
         hard_writer = open('hard.txt','a+')
-        for _ in tqdm(range(41)):
+        for _ in tqdm(range(101)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
 
             self.sess.run(self.tf_init_resize_noise(_image_content))
