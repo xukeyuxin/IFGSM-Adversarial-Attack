@@ -1077,7 +1077,7 @@ class GAN(op_base):
         choose_target_generator = self.target_generator('779')
 
         ## epoch
-        for _ in range(100):
+        for _epoch in range(self.epoch):
             for i in range(2000):
                 try:
                     taget_image_content,image_name = next(choose_target_generator)
@@ -1091,8 +1091,8 @@ class GAN(op_base):
                 if(i % 100 == 0):
                     print('d_loss %s' % _d_loss)
                     print('g_loss %s' % _g_loss)
-                    self.writer(str(_) + '-' + str(i) + '-' + _image_path,_combine_image)
-                    self.writer(str(_) + '-' + str(i) + '-' + 'noise' + _image_path,_noise_gen)
+                    self.writer(str(_epoch) + '-' + str(i) + '-' + _image_path,_combine_image)
+                    self.writer(str(_epoch) + '-' + str(i) + '-' + 'noise' + _image_path,_noise_gen)
 
 
         
