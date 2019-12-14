@@ -1076,7 +1076,8 @@ class GAN(op_base):
 
         choose_target_generator = self.target_generator('779')
 
-        for _ in range(self.epoch):
+        ## epoch
+        for _ in range(100):
             for i in range(2000):
                 try:
                     taget_image_content,image_name = next(choose_target_generator)
