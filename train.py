@@ -1059,15 +1059,19 @@ class GAN(op_base):
 
         choose_target_generator = self.target_generator('779')
 
-        for i in range(100000):
-            taget_image_content,image_name = next(choose_target_generator)
-            _taget_image_content = np.expand_dims(taget_image_content ,0)
-
-            feed_dict = { self.origin_input:_image_origin, self.target_input:_taget_image_content }
-            _,_d_loss,_g_loss = self.sess.run([optimizer,self.d_loss,self.g_loss],feed_dict = feed_dict)
-            if(i % 100 == 0):
-                print('d_loss %s' % _d_loss)
-                print('g_loss %s' % _g_loss)
+        for _ in range(self.epoch):
+            for i in range(2000):
+                try:
+                    taget_image_content,image_name = next(choose_target_generator)
+                    _taget_image_content = np.expand_dims(taget_image_content ,0)
+                except StopIteration:
+                    choose_target_generator = self.target_generator('779')
+                    break
+                feed_dict = { self.origin_input:_image_origin, self.target_input:_taget_image_content }
+                _,_d_loss,_g_loss = self.sess.run([optimizer,self.d_loss,self.g_loss],feed_dict = feed_dict)
+                if(i % 100 == 0):
+                    print('d_loss %s' % _d_loss)
+                    print('g_loss %s' % _g_loss)
 
 
         
