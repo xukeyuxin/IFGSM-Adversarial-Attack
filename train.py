@@ -486,19 +486,9 @@ class Classify(op_base):
             #     loss_resnet_tel_base = r_restel_tar_base * target_cross_entropy_resnet_tel
             #     return loss_resnet_tel_base, r_restel_tar_base
 
-        def item_graph(_model,_combine_image,newH = 299, test_crop = 299):
+        def item_graph(_model,_combine_image,newH = 299, test_crop = 299,need_label_cross = True, need_target_cross = True):
             logits_resnet_tel_base = _model(_combine_image)
-            rgb_loss,rgb_stop_t,rgb_stop_l  = cell_graph(logits_resnet_tel_base)
-            #### cell noise target attack
-            # if(need_change_channel_noise):
-            #     # logits_resnet_tel_bgr = _model(tf.clip_by_value(new_image + tmp_noise,-1.,1.)[...,::-1])
-            #     # bgr_loss, bgr_stop_t, bgr_stop_l = cell_graph(logits_resnet_tel_bgr)
-
-            #     logits_resnet_tmp = _model(tf.clip_by_value(tmp_noise,-1.,1.))
-            #     noise_loss, noise_stop_t,noise_stop_l = cell_graph(logits_resnet_tmp,need_label_cross = False,need_target_cross = True)
-
-            #     return rgb_loss + 1. * noise_loss, rgb_stop_t + noise_stop_t, rgb_stop_l + noise_stop_l
-            #     # return rgb_loss + bgr_loss + 1. * noise_loss, rgb_stop_t + bgr_stop_t + noise_stop_t, rgb_stop_l + bgr_stop_l + noise_stop_l
+            rgb_loss,rgb_stop_t,rgb_stop_l  = cell_graph(logits_resnet_tel_base,need_label_cross = need_label_cross, need_target_cross = need_target_cross)
             return rgb_loss
 
         def cell_left_flip_graph(noise,model):
@@ -507,12 +497,12 @@ class Classify(op_base):
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
             ### base image
-            image_loss = item_graph(model,_combine_image)
+            image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
             image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             image_feat_grad = flip_left_process(image_feat_grad)
 
             ### base noise
-            noise_loss = item_graph(model,_tmp_noise)
+            noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
             noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             noise_feat_grad = flip_left_process(noise_feat_grad)
 
@@ -524,12 +514,12 @@ class Classify(op_base):
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
             ### base image
-            image_loss = item_graph(model,_combine_image)
+            image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
             image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             image_feat_grad = flip_up_process(image_feat_grad)
 
             ### base noise
-            noise_loss = item_graph(model,_tmp_noise)
+            noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
             noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             noise_feat_grad = flip_up_process(noise_feat_grad)
 
@@ -559,11 +549,11 @@ class Classify(op_base):
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
             ### base image
-            image_loss = item_graph(model,_combine_image)
+            image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
             image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
 
             ### base noise
-            noise_loss = item_graph(model,_tmp_noise)
+            noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
             noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
 
             return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
@@ -574,11 +564,11 @@ class Classify(op_base):
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
             ### base image
-            image_loss = item_graph(model,_combine_image)
+            image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
             image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
 
             ### base noise
-            noise_loss = item_graph(model,_tmp_noise)
+            noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
             noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
 
             return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
@@ -590,12 +580,12 @@ class Classify(op_base):
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
             ### base image
-            image_loss = item_graph(model,_combine_image)
+            image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
             image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             image_feat_grad = flip_transpose(image_feat_grad)
 
             ### base noise
-            noise_loss = item_graph(model,_tmp_noise)
+            noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
             noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
             noise_feat_grad = flip_transpose(noise_feat_grad)
 
@@ -620,12 +610,12 @@ class Classify(op_base):
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
 
-                __image_loss = item_graph(model,_combine_image)
+                __image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
                 _image_loss += __image_loss
                 __image_feat_grad = tf.gradients(ys = __image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _image_feat_grad += image_resize(__image_feat_grad,(height, weight))
 
-                __noise_loss = item_graph(model,_tmp_noise)
+                __noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
                 _noise_loss += __noise_loss
                 __noise_feat_grad = tf.gradients(ys = __noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _noise_feat_grad += image_resize(__noise_feat_grad,(height, weight))
@@ -654,12 +644,12 @@ class Classify(op_base):
                 _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
 
 
-                __image_loss = item_graph(model,_combine_image)
+                __image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
                 _image_loss += __image_loss
                 __image_feat_grad = tf.gradients(ys = __image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _image_feat_grad += image_resize(__image_feat_grad,(height, weight))
 
-                __noise_loss = item_graph(model,_tmp_noise)
+                __noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
                 _noise_loss += __noise_loss
                 __noise_feat_grad = tf.gradients(ys = __noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
                 _noise_feat_grad += image_resize(__noise_feat_grad,(height, weight))
@@ -670,22 +660,29 @@ class Classify(op_base):
             return  _feat_grad,_loss 
 
         
-        def cell_random_noise_graph(noise,model):
-            random_noise = tf.random_normal([2, 3], stddev=1)
-            _random_image = flip_left_process(flip_up_process(self.input_images))
-            _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(model,_combine_image)
-            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-            _feat_grad = flip_left_process(flip_up_process(_feat_grad))
-            return _feat_grad, _loss  
+        # def cell_random_noise_graph(noise,model):
+        #     random_noise = tf.random_normal([2, 3], stddev=1)
+        #     _random_image = flip_left_process(flip_up_process(self.input_images))
+        #     _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
+        #     _loss = item_graph(model,_combine_image)
+        #     _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+        #     _feat_grad = flip_left_process(flip_up_process(_feat_grad))
+        #     return _feat_grad, _loss  
             
         def cell_base_graph(noise,model):
             _tmp_noise = noise
             _random_image = self.input_images
             _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-            _loss = item_graph(model,_combine_image)
-            _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-            return _feat_grad, _loss
+
+            ### base image
+            image_loss = item_graph(model,_combine_image,need_label_cross = True, need_target_cross = False)
+            image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+
+            ### base noise
+            noise_loss = item_graph(model,_tmp_noise,need_label_cross = False, need_target_cross = True)
+            noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
+
+            return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
         
         def cell_ac(tmp_noise,model):
             _feat_grad = tf.zeros((299,299,3))
@@ -695,15 +692,6 @@ class Classify(op_base):
             base_grad, base_loss = cell_base_graph(tmp_noise,model)
             _feat_grad += base_grad
             _loss += base_loss
-            ### left flip
-            # left_grad, left_loss =  cell_left_flip_graph(tmp_noise,model)
-            # _feat_grad += left_grad
-            # _loss += left_loss
-            # ### top down flip
-            # top_grad, top_loss =  cell_top_flip_graph(tmp_noise,model)
-            # _feat_grad += top_grad
-            # _loss += top_loss
-            ### clip
             
             ### brightness
             brightness_grad, brightness_loss =  cell_brightness_graph(tmp_noise,model)
@@ -890,7 +878,6 @@ class Classify(op_base):
 
     def attack(self):
         train_op = self.attack_graph()
-        hard_writer = open('hard.txt','a+')
         for _ in tqdm(range(101)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
 
@@ -988,10 +975,7 @@ class Classify(op_base):
         # v4_new : 1161 / 1216
         # v_res_old :1184 / 1216
         # v_res_new : / 1216
-        print(len(right))
-    
-    
-             
+        print(len(right))     
 
     def eval_local(self):
         self.sess.run(tf.global_variables_initializer())
