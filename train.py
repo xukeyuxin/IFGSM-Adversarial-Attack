@@ -1083,14 +1083,15 @@ class GAN(op_base):
                     _taget_image_content = np.expand_dims(taget_image_content ,0)
                 except StopIteration:
                     choose_target_generator = self.target_generator('779')
+                    print('start %s epoch' % _)
                     break
                 feed_dict = { self.origin_input:_image_origin, self.target_input:_taget_image_content }
                 _,_d_loss,_g_loss,_noise_gen,_combine_image = self.sess.run([optimizer,self.d_loss,self.g_loss,self.noise_gen,self.combine_image],feed_dict = feed_dict)
                 if(i % 100 == 0):
                     print('d_loss %s' % _d_loss)
                     print('g_loss %s' % _g_loss)
-                    self.writer(str(i) + _image_path,_combine_image)
-                    self.writer(str(i) + 'noise' + _image_path,_noise_gen)
+                    self.writer(str(_) + '-' + str(i) + '-' + _image_path,_combine_image)
+                    self.writer(str(_) + '-' + str(i) + '-' + 'noise' + _image_path,_noise_gen)
 
 
         
