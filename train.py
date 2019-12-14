@@ -166,7 +166,6 @@ class Classify(op_base):
         
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
-
     def get_restore_var(self,exclusion):
         if( isinstance(exclusion,str)):
             return [ var for var in tf.trainable_variables() if var.op.name.startswith(exclusion) ]
@@ -466,7 +465,6 @@ class Classify(op_base):
         #     new_image = tf.reshape(new_image,[-1,test_crop,test_crop,3])
         #     print(new_image)
         #     return new_image
-
         def cell_graph(logit,need_label_cross = True,need_target_cross = True):
             r_restel_tar_base = 0.
             r_restel_lab_base = 0.
@@ -659,16 +657,7 @@ class Classify(op_base):
             _loss = (0.5 * _image_loss + 0.5 * _noise_loss) / time
             return  _feat_grad,_loss 
 
-        
-        # def cell_random_noise_graph(noise,model):
-        #     random_noise = tf.random_normal([2, 3], stddev=1)
-        #     _random_image = flip_left_process(flip_up_process(self.input_images))
-        #     _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-        #     _loss = item_graph(model,_combine_image)
-        #     _feat_grad = tf.gradients(ys = _loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-        #     _feat_grad = flip_left_process(flip_up_process(_feat_grad))
-        #     return _feat_grad, _loss  
-            
+  
         def cell_base_graph(noise,model):
             _tmp_noise = noise
             _random_image = self.input_images
@@ -686,22 +675,27 @@ class Classify(op_base):
         
         def cell_ac(tmp_noise,model):
             _feat_grad = tf.zeros((299,299,3))
-            # _l2_grad = tf.zeros((299,299,3))
             _loss = tf.constant(0.)
             ### base
             base_grad, base_loss = cell_base_graph(tmp_noise,model)
             _feat_grad += base_grad
             _loss += base_loss
-            
-            # ### brightness
-            # brightness_grad, brightness_loss =  cell_brightness_graph(tmp_noise,model)
-            # _feat_grad += brightness_grad
-            # _loss += brightness_loss
+            ### left flip
+            # left_grad, left_loss =  cell_left_flip_graph(tmp_noise,model)
+            # _feat_grad += left_grad
+            # _loss += left_loss
+            # ### top down flip
+            # top_grad, top_loss =  cell_top_flip_graph(tmp_noise,model)
+            # _feat_grad += top_grad
+            # _loss += top_loss
 
-            # ### contrast
-            # contrast_grad, contrast_loss =  cell_contrast_graph(tmp_noise,model)
-            # _feat_grad += contrast_grad
-            # _loss += contrast_loss
+            brightness_grad, brightness_loss =  cell_brightness_graph(tmp_noise,model)
+            _feat_grad += brightness_grad
+            _loss += brightness_loss
+
+            contrast_grad, contrast_loss =  cell_contrast_graph(tmp_noise,model)
+            _feat_grad += contrast_grad
+            _loss += contrast_loss
 
             ### transpose flip
             transpose_grad, transpose_loss =  cell_transpose_graph(tmp_noise,model)
@@ -715,7 +709,7 @@ class Classify(op_base):
             big_grad, big_loss =  cell_reshape_big_graph(tmp_noise,model)
             _feat_grad += big_grad
             _loss += big_loss
-            return _feat_grad / 4 , _loss / 4
+            return _feat_grad / 6 , _loss / 6
 
         def mask_gradient(grads,drop_probs = int(0.01 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
@@ -732,9 +726,6 @@ class Classify(op_base):
 
             return gradient_mask
         
-        def tf_mutiply_times(gradient,alpha = 5.):
-            mutiply_times = tf.floor(gradient / alpha)
-            return mutiply_times
 
         ### softmax loss
         # tmp_noise = self.pre_noise(self.mask)
@@ -839,24 +830,22 @@ class Classify(op_base):
         r3 = tf.cond(self.index > 200,lambda: r3 * 0.1,lambda: r3)
 
         # loss_weight = r3 * 0.025 * loss_l2 + r3 * 0.004 * loss_tv   
-        loss_weight = r3 * 0.025 * loss_l2 
-        finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
+        # loss_weight = r3 * 0.025 * loss_l2 
+        # finetune_grad = tf.gradients(loss_weight,self.tmp_noise)[0]  
 
         ## finetune grad mask + l2_loss
-        loss1_grad_mask = mask_gradient(loss1_grad)
-        mix_grad_mask = loss1_grad_mask + finetune_grad
+        # loss1_grad_mask = mask_gradient(loss1_grad)
+        # mix_grad_mask = loss1_grad_mask + finetune_grad
 
         ## finetune grad mask + l2_loss
         # mix_grad_mask = loss1_grad + finetune_grad
 
         ## mix_grad mask
-        # mix_grad_mask = mask_gradient(loss1_grad)
+        mix_grad_mask = mask_gradient(loss1_grad)
 
         ### gradient_mask
         update_noise = self.tmp_noise - lr * tf.sign(mix_grad_mask)
-        # update_noise = self.tmp_noise - lr * tf_mutiply_times(mix_grad_mask)
-        
-        update_noise = update_noise + tf.clip_by_value( self.input_images, -1., 1.) - self.input_images
+        update_noise = update_noise + tf.clip_by_value(self.input_images, -1., 1.) - self.input_images
         update_noise = tf.clip_by_value(update_noise,-0.125, 0.125)
         # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
 
@@ -870,7 +859,7 @@ class Classify(op_base):
 
     def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
         write_image = self.float2rgb(np.squeeze(write_image))
-        total_path = os.path.join('data','test_result_3',root_dir)
+        total_path = os.path.join('data','test_random',root_dir)
         if(not os.path.exists(total_path)):
             os.mkdir(total_path)
         image_combine_with_noise = os.path.join(total_path,_image_path)
@@ -878,7 +867,8 @@ class Classify(op_base):
 
     def attack(self):
         train_op = self.attack_graph()
-        for _ in tqdm(range(101)):
+        hard_writer = open('hard.txt','a+')
+        for _ in tqdm(range(100)):
             _image_path,_image_content,_label,_target = next(self.attack_generator)
 
             self.sess.run(self.tf_init_resize_noise(_image_content))
@@ -890,18 +880,16 @@ class Classify(op_base):
 
             _image_origin = np.expand_dims(_image_content ,0) # (1,299,299,3)
             mask = np.ones([1,299,299,1])
-            for i in range(0,61):
+            for i in range(0,51):
                 # _image_content = np_random_process(_image_origin)
                 _image_content = _image_origin
                 feed_dict = self.make_feed_dict(_image_content,target_input,label_input,mask,i)
                 _,write_image,_weight,_loss = self.sess.run([train_op,self.combine_images,self.loss_weight,self.total_loss],feed_dict = feed_dict)
                 # _,write_image = self.sess.run([train_op,self.combine_images],feed_dict = feed_dict)
-                print(_loss)
-                i_list = range(10,60)
-                if( i in i_list):
+                _list = range(10,50)
+                if(i in _list):
                     self.writer(_image_path,write_image,root_dir = 'test_random_restel_%s' % i)
 
-            print('-----------finish')
             self.sess.run(self.tf_assign_init())
                     
 
@@ -975,7 +963,10 @@ class Classify(op_base):
         # v4_new : 1161 / 1216
         # v_res_old :1184 / 1216
         # v_res_new : / 1216
-        print(len(right))     
+        print(len(right))
+    
+    
+             
 
     def eval_local(self):
         self.sess.run(tf.global_variables_initializer())
@@ -997,86 +988,6 @@ class Classify(op_base):
                 print(np.sort(np.squeeze(_softmax))[-5:])
                 print(np.argsort(np.squeeze(_softmax))[-5:])
 
-class GAN(op_base):
-    def __init__(self,sess,args):
-        op_base.__init__(self,args)
-        self.sess = sess
-
-        self.attack_generator = self.data.load_attack_image()
-        self.target_generator = self.data.load_ImageNet_target_image
-    def gan_graph(self):
-        self.origin_input = tf.placeholder(tf.float32,shape = [1,299,299,3])
-        self.target_input = tf.placeholder(tf.float32,shape = [1,299,299,3])
-
-        # tmp_noise_init = self.xavier_initializer([1,299,299,3])
-        # self.init_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
-        # with tf.variable_scope('gan'):
-
-        self.G = generator('g')
-        self.D = discriminator('d')
-
-        self.noise_gen = self.G(self.origin_input) * 0.2
-
-        self.combine_image = self.origin_input + self.noise_gen
-
-        self.fake_sigmoid = self.D( self.combine_image )
-
-        self.target_sigmoid = self.D(self.target_input)
-
-        self.g_loss_l2 = tf.sqrt(tf.reduce_sum(tf.square(self.noise_gen)))
-
-        safe_log = 1e-12
-        self.d_loss = - tf.reduce_mean( tf.log( 1 - self.fake_sigmoid + safe_log ) ) - tf.reduce_mean( tf.log( self.target_sigmoid + safe_log ) )
-        self.g_loss = - tf.reduce_mean( tf.log(self.fake_sigmoid + safe_log) )
-
-        # d_gradient = tf.gradients(ys = self.d_loss,xs = cut_noise_gen) + tf.gradients(ys = self.d_loss, xs = self.target_input)
-        # g_gradient = tf.gradients(ys = self.g_loss,xs = self.origin_input)
-
-        self.d_opt = tf.train.AdamOptimizer(self.lr).minimize(self.d_loss,var_list = self.D.vars)
-        self.g_opt = tf.train.AdamOptimizer(self.lr).minimize(self.g_loss,var_list = self.G.vars)
-
-        with tf.control_dependencies([self.d_opt,self.g_opt]):
-            return tf.no_op(name = 'optimizer')
-
-    def float2rgb(self,input):
-        return input * 127.5 + 127.5
-    
-    def writer(self,_image_path,write_image):
-        write_image = np.clip(write_image,-1.,1.)
-        write_image = self.float2rgb(np.squeeze(write_image))
-        total_path = os.path.join('data','test_gan')
-        if(not os.path.exists(total_path)):
-            os.mkdir(total_path)
-        image_combine_with_noise = os.path.join(total_path,_image_path)
-        cv2.imwrite(image_combine_with_noise,write_image)
-
-    def train(self):
-        
-        optimizer = self.gan_graph()
-        self.sess.run(tf.global_variables_initializer())
-
-        _image_path,image_content,_label,_target = next(self.attack_generator)
-        _image_origin = np.expand_dims(image_content ,0)
-
-        choose_target_generator = self.target_generator('779')
-
-        ## epoch
-        for _epoch in range(self.epoch):
-            for i in range(2000):
-                try:
-                    taget_image_content,image_name = next(choose_target_generator)
-                    _taget_image_content = np.expand_dims(taget_image_content ,0)
-                except StopIteration:
-                    choose_target_generator = self.target_generator('779')
-                    print('start %s epoch' % _)
-                    break
-                feed_dict = { self.origin_input:_image_origin, self.target_input:_taget_image_content }
-                _,_d_loss,_g_loss,_noise_gen,_combine_image = self.sess.run([optimizer,self.d_loss,self.g_loss,self.noise_gen,self.combine_image],feed_dict = feed_dict)
-                if(i % 100 == 0):
-                    print('d_loss %s' % _d_loss)
-                    print('g_loss %s' % _g_loss)
-                    self.writer(str(_epoch) + '-' + str(i) + '-' + _image_path,_combine_image)
-                    self.writer(str(_epoch) + '-' + str(i) + '-' + 'noise' + _image_path,_noise_gen)
 
 
         
