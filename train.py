@@ -1053,7 +1053,10 @@ class GAN(op_base):
 
         with tf.control_dependencies([self.d_opt,self.g_opt]):
             return tf.no_op(name = 'optimizer')
-
+            
+    def float2rgb(self,input):
+        return input * 127.5 + 127.5
+    
     def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
         write_image = np.clip(write_image,-1.,1.)
         write_image = self.float2rgb(np.squeeze(write_image))
