@@ -1,6 +1,6 @@
 #coding:utf-8
 import tensorflow as tf
-from train import Classify,GAN
+from train import Classify
 import argparse
 import os
 import sys
