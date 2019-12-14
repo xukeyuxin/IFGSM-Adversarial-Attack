@@ -73,15 +73,15 @@ if __name__ == '__main__':
     # config.gpu_options.allow_growth = True
 
     with tf.Session(config = config) as sess:
-        # model = Classify(sess,args)
-        # if(args.action == 'train'):
-        #     model.train()
-        # elif(args.action == 'eval'):
-        #     model.eval()
-        # elif(args.action == 'eval_local'):
-        #     model.eval_local()
-        # elif(args.action == 'attack'):
-        #     model.attack()
-        model = GAN(sess,args)
-        model.train()
+        model = Classify(sess,args)
+        if(args.action == 'train'):
+            model.train()
+        elif(args.action == 'eval'):
+            model.eval()
+        elif(args.action == 'eval_local'):
+            model.eval_local()
+        elif(args.action == 'attack'):
+            model.attack()
+        # model = GAN(sess,args)
+        # model.train()
 
