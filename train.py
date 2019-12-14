@@ -693,15 +693,15 @@ class Classify(op_base):
             _feat_grad += base_grad
             _loss += base_loss
             
-            ### brightness
-            brightness_grad, brightness_loss =  cell_brightness_graph(tmp_noise,model)
-            _feat_grad += brightness_grad
-            _loss += brightness_loss
+            # ### brightness
+            # brightness_grad, brightness_loss =  cell_brightness_graph(tmp_noise,model)
+            # _feat_grad += brightness_grad
+            # _loss += brightness_loss
 
-            ### contrast
-            contrast_grad, contrast_loss =  cell_contrast_graph(tmp_noise,model)
-            _feat_grad += contrast_grad
-            _loss += contrast_loss
+            # ### contrast
+            # contrast_grad, contrast_loss =  cell_contrast_graph(tmp_noise,model)
+            # _feat_grad += contrast_grad
+            # _loss += contrast_loss
 
             ### transpose flip
             transpose_grad, transpose_loss =  cell_transpose_graph(tmp_noise,model)
@@ -715,7 +715,7 @@ class Classify(op_base):
             big_grad, big_loss =  cell_reshape_big_graph(tmp_noise,model)
             _feat_grad += big_grad
             _loss += big_loss
-            return _feat_grad / 6 , _loss / 6
+            return _feat_grad / 4 , _loss / 4
 
         def mask_gradient(grads,drop_probs = int(0.01 * 299 * 299),flatten_shape = [299*299,3]):
             grads = tf.squeeze(grads)
