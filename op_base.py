@@ -80,7 +80,6 @@ class data(object):
     def load_ImageNet_target_image(self,target):
         dirName = os.path.join(self.train_image_path,self.classNameList[int(target) - 1])
         image_list = os.listdir(dirName)
-        index = 0
         for item in image_list:
             image_content = self.rbg2float(cv2.imread(os.path.join(dirName,item)))
             yield image_content, item

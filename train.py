@@ -166,6 +166,7 @@ class Classify(op_base):
         
         self.attack_generator = self.data.load_attack_image()
         self.target_generator = self.data.load_ImageNet_target_image
+
     def get_restore_var(self,exclusion):
         if( isinstance(exclusion,str)):
             return [ var for var in tf.trainable_variables() if var.op.name.startswith(exclusion) ]
@@ -867,7 +868,7 @@ class Classify(op_base):
         update_noise = self.tmp_noise - lr * tf.sign(mix_grad_mask)
         # update_noise = self.tmp_noise - lr * tf_mutiply_times(mix_grad_mask)
         
-        update_noise =  tf.clip_by_value( update_noise + self.input_images, -1., 1.) - self.input_images
+        update_noise = update_noise + tf.clip_by_value( self.input_images, -1., 1.) - self.input_images
         update_noise = tf.clip_by_value(update_noise,-0.125, 0.125)
         # update_noise = tf.clip_by_value(update_noise,-0.25, 0.25)
 
@@ -1012,6 +1013,61 @@ class Classify(op_base):
                 print(np.sort(np.squeeze(_softmax))[-5:])
                 print(np.argsort(np.squeeze(_softmax))[-5:])
 
+class GAN(op_base):
+    def __init__(self,sess,args):
+        op_base.__init__(self,args)
+        self.sess = sess
+
+        self.attack_generator = self.data.load_attack_image()
+        self.target_generator = self.data.load_ImageNet_target_image
+    def gan_graph(self):
+        self.origin_input = tf.placeholder(tf.float32,shape = [1,299,299,3])
+        self.target_input = tf.placeholder(tf.float32,shape = [1,299,299,3])
+
+        # tmp_noise_init = self.xavier_initializer([1,299,299,3])
+        # self.init_noise = tf.get_variable('noise',shape = [1,299,299,3], initializer= tf.constant_initializer(tmp_noise_init))
+        # with tf.variable_scope('gan'):
+
+        self.G = generator('g')
+        self.D = discriminator('d')
+
+        self.noise_gen = self.G(self.origin_input) * 0.125
+
+        self.fake_sigmoid = self.D( self.origin_input + self.noise_gen )
+
+        self.target_sigmoid = self.D(self.target_input)
+
+        self.g_loss_l1 = tf.sqrt(tf.reduce_sum(tf.square(self.noise_gen)))
+
+        safe_log = 1e-12
+        self.d_loss = - tf.reduce_mean( tf.log( 1 - self.fake_sigmoid + safe_log ) ) - tf.reduce_mean( tf.log( self.target_sigmoid + safe_log ) )
+        self.g_loss = - tf.reduce_mean( tf.log(self.fake_sigmoid + safe_log) ) + self.g_loss_l1
+
+        self.d_opt = tf.train.AdamOptimizer(self.lr).minimize(self.d_loss,var_list = self.D.vars)
+        self.g_opt = tf.train.AdamOptimizer(self.lr).minimize(self.g_loss,var_list = self.G.vars)
+
+        with tf.control_dependencies([self.d_opt,self.g_opt]):
+            return tf.no_op(name = 'optimizer')
+
+    def train(self):
+        
+        optimizer = self.gan_graph()
+        self.sess.run(tf.global_variables_initializer())
+
+        _image_path,image_content,_label,_target = next(self.attack_generator)
+        _image_origin = np.expand_dims(image_content ,0)
+
+        choose_target_generator = self.target_generator('779')
+
+        for i in range(100000):
+            taget_image_content,image_name = next(choose_target_generator)
+            _taget_image_content = np.expand_dims(taget_image_content ,0)
+
+            feed_dict = { self.origin_input:_image_origin, self.target_input:_taget_image_content }
+            _,_d_loss,_g_loss = self.sess.run([optimizer,self.d_loss,self.g_loss],feed_dict = feed_dict)
+            if(i % 100 == 0):
+                print('d_loss %s' % _d_loss)
+                print('g_loss %s' % _g_loss)
 
 
         

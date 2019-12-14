@@ -1,6 +1,6 @@
 #coding:utf-8
 import tensorflow as tf
-from train import Classify
+from train import Classify,GAN
 import argparse
 import os
 import sys
@@ -73,15 +73,15 @@ if __name__ == '__main__':
     # config.gpu_options.allow_growth = True
 
     with tf.Session(config = config) as sess:
-        model = Classify(sess,args)
-        if(args.action == 'train'):
-            model.train()
-        elif(args.action == 'eval'):
-            model.eval()
-        elif(args.action == 'eval_local'):
-            model.eval_local()
-        elif(args.action == 'attack'):
-            model.attack()
-        # model.eval_finetune()
-        # model.find_sim()
-        # model.attack()
+        # model = Classify(sess,args)
+        # if(args.action == 'train'):
+        #     model.train()
+        # elif(args.action == 'eval'):
+        #     model.eval()
+        # elif(args.action == 'eval_local'):
+        #     model.eval_local()
+        # elif(args.action == 'attack'):
+        #     model.attack()
+        model = GAN(sess,args)
+        model.train()
+

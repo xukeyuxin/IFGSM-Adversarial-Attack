@@ -2,6 +2,7 @@ import tensorflow as tf
 import cv2
 import numpy as np
 import math
+import layer as ly
 
 def preprocess(image, height, width, bbox):
     # 若没有提供标注框则默认为关注区域为整个图像
@@ -90,6 +91,94 @@ def np_random_process(input):
     ## write
     cv2.imwrite('test.png',image)
     return image.reshape(input_shape)
+
+class generator(object):
+    def __init__(self,name):
+        self.name = name
+        self.reuse = tf.AUTO_REUSE
+    def __call__(self,input):
+        with tf.variable_scope(self.name,reuse = self.reuse):
+            input = ly.conv2d(input, 64, kernel_size=7, strides=1, name='g_conv2d_0')
+            input = ly.batch_normal(input, name='g_bn_0')
+            input = tf.nn.relu(input)
+
+            input = ly.conv2d(input, 128, kernel_size=3, strides=2, name='g_conv2d_1')
+            input = ly.batch_normal(input, name='g_bn_1')
+            input = tf.nn.relu(input)
+
+            input = ly.conv2d(input, 256, kernel_size=3, strides=2, name='g_conv2d_2')
+            input = ly.batch_normal(input, name='g_bn_2')
+            input = tf.nn.relu(input)
+
+            ### resnet
+            for i in range(8):
+                cell = ly.conv2d(input, 256, kernel_size=3, strides=1, name='g_conv2d_res_%s' % i)
+                cell = ly.batch_normal(cell, name='g_res_%s' % i)
+                cell = tf.nn.relu(cell)
+                input = cell
+
+            input = ly.deconv2d(input,kernel_size=3, strides=2, name='g_deconv2d_0')
+            input = ly.batch_normal(input, name='g_bn_3')
+            input = tf.nn.relu(input)
+
+            input = ly.deconv2d(input,kernel_size=3, strides=2, name='g_deconv2d_1')
+            input = ly.batch_normal(input, name='g_bn_4')
+            input = tf.nn.relu(input)
+
+            input = ly.conv2d(input, 3, kernel_size=7, strides=1, name='g_conv2d_3')
+            input = ly.batch_normal(input, name='g_bn_5')
+            input = tf.nn.tanh(input)
+
+            input = tf.image.resize_images(input,(299,299))
+        return input ## (-1,28,28,1)
+
+    @property
+    def vars(self):
+        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = self.name)
+
+
+class discriminator(object):
+    def __init__(self,name):
+        self.name = name
+        self.reuse = tf.AUTO_REUSE
+    def __call__(self,input):
+        with tf.variable_scope(self.name, reuse = self.reuse):
+            input = ly.conv2d(input, 64, strides=2,name = 'conv_0')  ## (-1,150,150,64)
+            input = ly.batch_normal(input,name = 'bn_0')
+            input = tf.nn.leaky_relu(input)
+
+            input = ly.conv2d(input, 128, strides=2,name = 'conv_1')  ## (-1,75,75,128)
+            input = ly.batch_normal(input,name = 'bn_1')
+            input = tf.nn.leaky_relu(input)
+
+            input = ly.conv2d(input, 256, strides=2,name = 'conv_2')  ## (-1,38,38,256)
+            input = ly.batch_normal(input, name='bn_2')
+            input = tf.nn.leaky_relu(input)
+
+            input = ly.conv2d(input, 512, strides=2,name = 'conv_3')  ## (-1,19,19,512)
+            input = ly.batch_normal(input, name='bn_3')
+            input = tf.nn.leaky_relu(input)
+
+            print(input.shape)
+            input = ly.conv2d(input, 512, strides=2,name = 'conv_4')  ## (-1,10,10,512)
+            input = ly.batch_normal(input, name='bn_4')
+            input = tf.nn.leaky_relu(input)
+
+            ## avg
+            input = tf.reduce_mean(input,axis = [1,2])
+            input = tf.nn.dropout(input,keep_prob = 0.5)
+
+            input = ly.fc(input, 1,name = 'fc_0')
+            # input = ly.batch_normal(input, name='bn_5')
+            input = tf.nn.sigmoid(input)
+
+        return input
+
+    @property
+    def vars(self):
+        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = self.name)
+
+
 if __name__ == '__main__':
     img = cv2.imread('data/test_local/0c7ac4a8c9dfa802.png')
     np_random_process(img)
