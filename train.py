@@ -1053,14 +1053,14 @@ class GAN(op_base):
 
         with tf.control_dependencies([self.d_opt,self.g_opt]):
             return tf.no_op(name = 'optimizer')
-            
+
     def float2rgb(self,input):
         return input * 127.5 + 127.5
     
-    def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
+    def writer(self,_image_path,write_image):
         write_image = np.clip(write_image,-1.,1.)
         write_image = self.float2rgb(np.squeeze(write_image))
-        total_path = os.path.join('data','test_gan',root_dir)
+        total_path = os.path.join('data','test_gan')
         if(not os.path.exists(total_path)):
             os.mkdir(total_path)
         image_combine_with_noise = os.path.join(total_path,_image_path)
