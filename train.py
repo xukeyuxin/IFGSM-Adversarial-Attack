@@ -1031,23 +1031,37 @@ class GAN(op_base):
         self.G = generator('g')
         self.D = discriminator('d')
 
-        self.noise_gen = self.G(self.origin_input) * 0.125
+        self.noise_gen = self.G(self.origin_input) * 0.2
 
-        self.fake_sigmoid = self.D( self.origin_input + self.noise_gen )
+        self.combine_image = self.origin_input + self.noise_gen
+
+        self.fake_sigmoid = self.D( self.combine_image )
 
         self.target_sigmoid = self.D(self.target_input)
 
-        self.g_loss_l1 = tf.sqrt(tf.reduce_sum(tf.square(self.noise_gen)))
+        self.g_loss_l2 = tf.sqrt(tf.reduce_sum(tf.square(self.noise_gen)))
 
         safe_log = 1e-12
         self.d_loss = - tf.reduce_mean( tf.log( 1 - self.fake_sigmoid + safe_log ) ) - tf.reduce_mean( tf.log( self.target_sigmoid + safe_log ) )
-        self.g_loss = - tf.reduce_mean( tf.log(self.fake_sigmoid + safe_log) ) + self.g_loss_l1
+        self.g_loss = - tf.reduce_mean( tf.log(self.fake_sigmoid + safe_log) ) + self.g_loss_l2
+
+        # d_gradient = tf.gradients(ys = self.d_loss,xs = cut_noise_gen) + tf.gradients(ys = self.d_loss, xs = self.target_input)
+        # g_gradient = tf.gradients(ys = self.g_loss,xs = self.origin_input)
 
         self.d_opt = tf.train.AdamOptimizer(self.lr).minimize(self.d_loss,var_list = self.D.vars)
         self.g_opt = tf.train.AdamOptimizer(self.lr).minimize(self.g_loss,var_list = self.G.vars)
 
         with tf.control_dependencies([self.d_opt,self.g_opt]):
             return tf.no_op(name = 'optimizer')
+
+    def writer(self,_image_path,write_image,root_dir = 'test_random_restel'):
+        write_image = np.clip(write_image,-1.,1.)
+        write_image = self.float2rgb(np.squeeze(write_image))
+        total_path = os.path.join('data','test_gan',root_dir)
+        if(not os.path.exists(total_path)):
+            os.mkdir(total_path)
+        image_combine_with_noise = os.path.join(total_path,_image_path)
+        cv2.imwrite(image_combine_with_noise,write_image)
 
     def train(self):
         
@@ -1068,10 +1082,11 @@ class GAN(op_base):
                     choose_target_generator = self.target_generator('779')
                     break
                 feed_dict = { self.origin_input:_image_origin, self.target_input:_taget_image_content }
-                _,_d_loss,_g_loss = self.sess.run([optimizer,self.d_loss,self.g_loss],feed_dict = feed_dict)
+                _,_d_loss,_g_loss,_combine_image = self.sess.run([optimizer,self.d_loss,self.g_loss,self.combine_image],feed_dict = feed_dict)
                 if(i % 100 == 0):
                     print('d_loss %s' % _d_loss)
                     print('g_loss %s' % _g_loss)
+                    self.writer(_image_path,_combine_image)
 
 
         
