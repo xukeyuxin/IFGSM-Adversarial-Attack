@@ -1043,7 +1043,7 @@ class GAN(op_base):
 
         safe_log = 1e-12
         self.d_loss = - tf.reduce_mean( tf.log( 1 - self.fake_sigmoid + safe_log ) ) - tf.reduce_mean( tf.log( self.target_sigmoid + safe_log ) )
-        self.g_loss = - tf.reduce_mean( tf.log(self.fake_sigmoid + safe_log) ) + self.g_loss_l2
+        self.g_loss = - tf.reduce_mean( tf.log(self.fake_sigmoid + safe_log) )
 
         # d_gradient = tf.gradients(ys = self.d_loss,xs = cut_noise_gen) + tf.gradients(ys = self.d_loss, xs = self.target_input)
         # g_gradient = tf.gradients(ys = self.g_loss,xs = self.origin_input)
@@ -1085,11 +1085,12 @@ class GAN(op_base):
                     choose_target_generator = self.target_generator('779')
                     break
                 feed_dict = { self.origin_input:_image_origin, self.target_input:_taget_image_content }
-                _,_d_loss,_g_loss,_combine_image = self.sess.run([optimizer,self.d_loss,self.g_loss,self.combine_image],feed_dict = feed_dict)
+                _,_d_loss,_g_loss,_noise_gen,_combine_image = self.sess.run([optimizer,self.d_loss,self.g_loss,self.noise_gen,self.combine_image],feed_dict = feed_dict)
                 if(i % 100 == 0):
                     print('d_loss %s' % _d_loss)
                     print('g_loss %s' % _g_loss)
-                    self.writer(_image_path,_combine_image)
+                    self.writer(str(i) + _image_path,_combine_image)
+                    self.writer(str(i) + 'noise' + _image_path,_noise_gen)
 
 
         
