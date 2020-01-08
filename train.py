@@ -35,8 +35,7 @@ class Classify(op_base):
         self.label_label = tf.placeholder(tf.int32,shape = [None,1000])
         self.mask = tf.placeholder(tf.float32,shape = [1,self.image_height,self.image_weight,1])
         self.index = tf.placeholder(tf.int32,shape = [])
-        # self.new_size = tf.placeholder(tf.int32,shape = [2])
-        # self.stop_value = tf.placeholder(tf.float32, shape = [])
+
         self.gaussian_blur = GaussianBlur()
 
         attack = True if self.action == 'attack' else False
@@ -429,19 +428,6 @@ class Classify(op_base):
 
             return  alpha2 * target_loss_cross_entropy - alpha1 * label_loss_cross_entropy
 
-        ### random loss
-        # random_list = [self.combine_images_320_299,self.combine_images,self.combine_images_blur_320_299,self.combine_images_blur]
-        # def random_loss(combine_image):
-        #     logit = self.model(combine_image)
-        #     loss = entropy_loss(logit)
-        #     return loss
-        # random_choise = tf.random_uniform([],0,4,dtype = tf.int32)
-        # image_choose = tf.gather(random_list,random_choise)
-        # loss_total = random_loss(image_choose)
-        # self.combine_images_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_images,320,299) + tmp_noise,-1.,1.)
-        # self.combine_images_blur_320_299 = tf.clip_by_value(self.tf_preprocess(self.input_blur_images,320,299) + tmp_noise,-1.,1.)
-        # self.combine_images_blur = tf.clip_by_value(self.input_blur_images + tmp_noise,-1.,1.)
-
         def get_label_index(label):
             _label = tf.squeeze(label)
             _label_max = tf.argsort(_label)[-1:]
@@ -456,15 +442,6 @@ class Classify(op_base):
             r = tf.cond( tf.squeeze(_target_logit) >= alpha * tf.squeeze(_second_value),lambda: 0.,lambda: 1.)
             return r
 
-            
-        # def cut_320_299(input,newH = 320,test_crop = 299):
-        #     newW = newH
-        #     # input = tf.squeeze(input)
-        #     new_image = tf.image.resize_images(input,(newH,newH))
-        #     new_image = new_image[:,int((newH-test_crop)/2):int((newH-test_crop)/2)+int(test_crop),int((newW-test_crop)/2):int((newW-test_crop)/2)+int(test_crop)]
-        #     new_image = tf.reshape(new_image,[-1,test_crop,test_crop,3])
-        #     print(new_image)
-        #     return new_image
         def cell_graph(logit,need_label_cross = True,need_target_cross = True):
             r_restel_tar_base = 0.
             r_restel_lab_base = 0.
@@ -522,24 +499,6 @@ class Classify(op_base):
             noise_feat_grad = flip_up_process(noise_feat_grad)
 
             return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
-
-
-        # def cell_clip_graph(noise,model):
-        #     _tmp_noise = flip_transpose(flip_up_process(noise))
-        #     _random_image = flip_transpose(flip_up_process(self.input_images))
-        #     _combine_image = tf.clip_by_value(_random_image + _tmp_noise,-1.,1.)
-
-        #     ### base image
-        #     image_loss = item_graph(model,_combine_image)
-        #     image_feat_grad = tf.gradients(ys = image_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-        #     image_feat_grad = flip_transpose(image_feat_grad)
-
-        #     ### base noise
-        #     noise_loss = item_graph(model,_tmp_noise)
-        #     noise_feat_grad = tf.gradients(ys = noise_loss,xs = _tmp_noise)[0] ## (1,299,299,3)
-        #     noise_feat_grad = flip_transpose(noise_feat_grad)
-
-        #     return 0.5 * image_feat_grad + 0.5 * noise_feat_grad , 0.5 * image_loss + 0.5 * noise_loss
 
         def cell_brightness_graph(noise,model):
             _tmp_noise = brightness_up_process(noise,0.5)
@@ -795,7 +754,7 @@ class Classify(op_base):
 
         self.mix_stop = _stop_mix
 
-        # # ### logits
+        ### logits
 
         # logits_base = self.model(self.combine_images)
         # logits_base_320_299 = self.model(self.combine_images_320_299)
@@ -957,13 +916,7 @@ class Classify(op_base):
             if(pred == target_index):
                 print(pred)
                 right.append(_p)
-        # v3_old :1002 / 1216
-        # v3_new : 1153 / 1216
-        # v4_old :1129 / 1216
-        # v4_new : 1161 / 1216
-        # v_res_old :1184 / 1216
-        # v_res_new : / 1216
-        print(len(right))
+
     
     
              
